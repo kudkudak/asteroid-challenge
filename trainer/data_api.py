@@ -100,17 +100,18 @@ def get_example_memory(id):
         # Create in-memory objects
         X_extra_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ExtraColumns))
         X_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ImageChannels * aug_image_side**2))
-        Y_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ))
+        Y_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ), dtype=int)
 
         # Load data
         in_memory_id = 0
+        print "Chunks_count=", chunks_count
         for i in xrange(chunks_count):
-            if i >= chunks_count - 1: break
+            if i >= (chunks_count - 1): break
             chk, chk_det = get_chunk(i)[0], get_chunk(i)[1]
             for j in xrange(len(chk_det)):
                 X_in_memory[in_memory_id, :] = chk[j, :, :, :].reshape((4* aug_image_side**2, ))
                 X_extra_in_memory[in_memory_id, :] = [float(x) for x in chk_det[j][9:15]]
-                Y_in_memory[in_memory_id] = float(chk_det[j][-1])
+                Y_in_memory[in_memory_id] = 1 if float(chk_det[j][-1]) > 0.0 else 0
                 in_memory_id += 1
 
         # Normalize X_extra_in_memory
@@ -152,9 +153,9 @@ def get_training_test_matrices_bare(train_percentage=0.9, oversample_negative=Fa
         else:
             #a = np.hstack((X_in_memory[train_ids, :], X_extra_in_memory[train_ids, :]))
             return np.hstack((X_in_memory[train_ids, :], X_extra_in_memory[train_ids, :])),\
-                   Y_in_memory[train_ids, :],\
-        np.hstack((X_in_memory[test_ids, :], X_extra_in_memory[test_ids, :])),\
-        Y_in_memory[test_ids]
+                   Y_in_memory[train_ids],\
+                    np.hstack((X_in_memory[test_ids, :], X_extra_in_memory[test_ids, :])),\
+                   Y_in_memory[test_ids]
 
 
 

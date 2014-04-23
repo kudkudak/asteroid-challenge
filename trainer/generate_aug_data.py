@@ -174,4 +174,4 @@ def generate_aug(generator, preprocessor, chunk_size, folder=DataAugDir, prefix=
         f.write(json.dumps(desc))
 
 
-generate_aug(generator_crop_flip_8fold, preprocessing_gauss_eq, chunk_size=100, limit=100)
+generate_aug(generator_crop_flip_8fold, preprocessing_gauss_eq, chunk_size=1000)
