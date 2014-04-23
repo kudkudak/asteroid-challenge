@@ -5,18 +5,8 @@ import sklearn
 from sklearn import linear_model
 
 
-
-
-#print "Generating"
-#trn, tst = get_training_test_generators_bare(limit_size=1000)
-#print "Generated"
-#
-#for ex, y, det in trn:
-#    print ex, y
-
-
 print "SVM Test.."
-X_tr, Y_tr, X_tst, Y_st = get_training_test_matrices_bare()
+X_tr, Y_tr, X_tst, Y_st = get_training_test_matrices_bare(limit_size=1000)
 print "Training on ", X_tr.shape
 wclf = linear_model.SGDClassifier(loss='hinge', class_weight='auto')
 

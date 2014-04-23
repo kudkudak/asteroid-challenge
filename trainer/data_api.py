@@ -8,7 +8,7 @@ from utils import cached_HDD, cached_in_memory, timed
 DataAugDir = "data_aug"
 ImageChannels = 4
 ImageSide = 64
-
+ExtraColumns = 1+1+1+1+1+1 # Magnitu + FWHM+ Theta + Elong + RMSE + Deltamu
 
 #####  Low level API #####
 
@@ -20,6 +20,7 @@ aug_fold_out = None # One image in raw dataset produces N images in augmented da
 aug_image_side = None # Current image side in augumented dataset
 
 try:
+
     augdataset_desc = json.loads(open("data_aug.desc").read())
     aug_single_chunk_size = augdataset_desc["chunk_size"]
     aug_fold_out = augdataset_desc["fold_out"]
@@ -70,9 +71,9 @@ def free_memory():
 dataset_in_memory = False
 # Transformed as big matrix
 X_in_memory = []
-det_in_memory = []
 # Transformed to easy format
 Y_in_memory = []
+X_extra_in_memory = []
 
 def get_example(id):
     """
@@ -81,12 +82,15 @@ def get_example(id):
     c = get_chunk(id // aug_single_chunk_size)
     return c[0][id % aug_single_chunk_size].reshape((ImageChannels*aug_image_side**2)), c[1][id % aug_single_chunk_size]
 
+from sklearn.preprocessing import normalize
 
 def get_example_memory(id):
     """
     Fetches single example which are preloaded into RAM memory, that simple :) High level API
+
+    Should be almost always called - will fit in 8GB
     """
-    global X_in_memory, det_in_memory, Y_in_memory, dataset_in_memory
+    global X_in_memory, det_in_memory, Y_in_memory, dataset_in_memory, X_extra_in_memory
 
 
     if not dataset_in_memory:
@@ -94,29 +98,35 @@ def get_example_memory(id):
         dataset_in_memory = True
 
         # Create in-memory objects
+        X_extra_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ExtraColumns))
         X_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ImageChannels * aug_image_side**2))
         Y_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ))
-        det_in_memory = []
 
         # Load data
         in_memory_id = 0
         for i in xrange(chunks_count):
+            if i >= chunks_count - 1: break
             chk, chk_det = get_chunk(i)[0], get_chunk(i)[1]
             for j in xrange(len(chk_det)):
                 X_in_memory[in_memory_id, :] = chk[j, :, :, :].reshape((4* aug_image_side**2, ))
+                X_extra_in_memory[in_memory_id, :] = [float(x) for x in chk_det[j][9:15]]
                 Y_in_memory[in_memory_id] = float(chk_det[j][-1])
-                det_in_memory.append(chk_det[j])
                 in_memory_id += 1
 
+        # Normalize X_extra_in_memory
+        X_extra_in_memory = normalize(X_extra_in_memory, axis=1, norm='l1')
 
 
-    return X_in_memory[id, :], Y_in_memory[id], det_in_memory[id]
+
+    return X_in_memory[id, :], Y_in_memory[id], X_extra_in_memory[id, :]
 
 
+import numpy as np
 
 @timed
 @cached_HDD
-def get_training_test_matrices_bare(train_percentage=0.9, oversample_negative=False, limit_size = 10000000000):
+def get_training_test_matrices_bare(train_percentage=0.9, oversample_negative=False, limit_size = 10000000000,
+                                    add_x_extra=True):
     """ Oversampling is useful if class are imbalanced """
     assert oversample_negative == False
     assert aug_fold_out is not None
@@ -132,13 +142,19 @@ def get_training_test_matrices_bare(train_percentage=0.9, oversample_negative=Fa
 
         set_of_ids = set(train_ids)
 
-        test_ids = [id for id in xrange(rawdataset_size*aug_fold_out) if id not in set_of_ids]
+        test_ids = [id for id in xrange(dataset_size) if id not in set_of_ids]
 
         # Load into memory
         get_example_memory(0)
 
-        return X_in_memory[train_ids], Y_in_memory[train_ids, :], X_in_memory[test_ids, :], Y_in_memory[test_ids]
-
+        if not add_x_extra:
+            return X_in_memory[train_ids], Y_in_memory[train_ids, :], X_in_memory[test_ids, :], Y_in_memory[test_ids]
+        else:
+            #a = np.hstack((X_in_memory[train_ids, :], X_extra_in_memory[train_ids, :]))
+            return np.hstack((X_in_memory[train_ids, :], X_extra_in_memory[train_ids, :])),\
+                   Y_in_memory[train_ids, :],\
+        np.hstack((X_in_memory[test_ids, :], X_extra_in_memory[test_ids, :])),\
+        Y_in_memory[test_ids]
 
 
 
