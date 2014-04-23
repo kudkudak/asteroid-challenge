@@ -1,16 +1,10 @@
 from sklearn import svm
 import cPickle
 from data_api import *
-
-print "Number of chunks ", chunks_count
-print get_chunk(0)[0][0]
-print chunks_positive_ids
-print chunks_negative_ids
-
-from visualize import *
+import sklearn
+from sklearn import linear_model
 
 
-show_4_ex(get_chunk(0)[0][0], get_chunk(0)[1][0])
 
 
 #print "Generating"
@@ -24,10 +18,14 @@ show_4_ex(get_chunk(0)[0][0], get_chunk(0)[1][0])
 print "SVM Test.."
 X_tr, Y_tr, X_tst, Y_st = get_training_test_matrices_bare()
 print "Training on ", X_tr.shape
-wclf = svm.SVC(kernel='linear', class_weight={0: 7}, max_iter=3000 )
-m = wclf.fit(X_tr, Y_tr)
-print "Scoring.."
-print "Accuracy ", m.score(X_tst, Y_st)
+wclf = linear_model.SGDClassifier(loss='hinge', class_weight='auto')
+
+while True:
+    wclf.partial_fit(X_tr, Y_tr, classes=[0,1])
+    print "Scoring.."
+    print "Accuracy ", wclf.score(X_tst, Y_st)
 
 print "Dumping to file "
 cPickle.dump(wclf, open("trained_svm.pkl","w"))
+
+

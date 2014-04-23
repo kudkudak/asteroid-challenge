@@ -2,6 +2,7 @@ import os
 import json
 import numpy as np
 import random
+from utils import cached_HDD, cached_in_memory, timed
 
 ##### Constants #####
 DataAugDir = "data_aug"
@@ -66,7 +67,6 @@ def free_memory():
 
 
 
-
 dataset_in_memory = False
 # Transformed as big matrix
 X_in_memory = []
@@ -114,6 +114,8 @@ def get_example_memory(id):
 
 
 
+@timed
+@cached_HDD
 def get_training_test_matrices_bare(train_percentage=0.9, oversample_negative=False, limit_size = 10000000000):
     """ Oversampling is useful if class are imbalanced """
     assert oversample_negative == False
@@ -136,7 +138,6 @@ def get_training_test_matrices_bare(train_percentage=0.9, oversample_negative=Fa
         get_example_memory(0)
 
         return X_in_memory[train_ids], Y_in_memory[train_ids, :], X_in_memory[test_ids, :], Y_in_memory[test_ids]
-
 
 
 

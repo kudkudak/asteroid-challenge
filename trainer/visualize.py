@@ -45,6 +45,7 @@ def show_4_ex(im1, det):
     pl.show()
 
 
+
 def show_4(i, im2 = None):
     det = None
     im1 = None
