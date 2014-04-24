@@ -9,15 +9,9 @@ from im_operators import *
 import os
 from data_api import *
 import json
-
-def load_img_det(i):
-    raw_values = [float(x) for x in open("data/{0}_img.raw".format(i)).
-        read().split(" ") if len(x) > 0]
-    det = None
-    with open("data/{0}.det".format(i)) as f:
-        det = f.read().split(" ")
-    return np.array(raw_values).reshape(4, 64, 64), det
-
+def preprocessing_gauss_eq_center(img, det):
+    return im_crop(ndimage.gaussian_filter(img / maximum_value - 0.5*np.ones(shape=img.shape), sigma=1.1),
+                   6.0)
 
 def preprocessing_gauss_eq(img, det):
     return im_crop(exposure.equalize_hist(ndimage.gaussian_filter(img, sigma=1.1)),
@@ -184,5 +178,5 @@ def generate_aug(generator, preprocessor, chunk_size, folder=DataAugDir, prefix=
         f.write(json.dumps(desc))
 
 
-# Chunk size divicdes foldout
-generate_aug(generator_crop_flip_8fold, preprocessing_gauss_eq, chunk_size=160)
+if __name__ == "__main__":
+    generate_aug(generator_crop_flip_8fold, preprocessing_gauss_eq, chunk_size=160, limit=100)

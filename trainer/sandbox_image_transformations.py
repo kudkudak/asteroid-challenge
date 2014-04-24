@@ -6,11 +6,18 @@ from im_operators import *
 import os
 from data_api import *
 import json
+from visualize import *
+from generate_aug_data import *
+
+print maximum_value
 
 
-im_list, det = load_img_det(i)
 
-im_0_gen = generator(im_list[0], det, preprocessor)
-im_1_gen = generator(im_list[1], det, preprocessor)
-im_2_gen = generator(im_list[2], det, preprocessor)
-im_3_gen = generator(im_list[3], det, preprocessor)
+
+im_list, det = load_img_det(100)
+
+im_0_gen = generator_crop_flip_8fold(im_list[0], det, preprocessing_gauss_eq_center)
+
+print im_0_gen[0]
+
+show_4_ex(im_0_gen[0:4], det)

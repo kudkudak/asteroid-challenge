@@ -10,10 +10,27 @@ ImageChannels = 4
 ImageSide = 64
 ExtraColumns = 1+1+1+1+1+1 # Magnitu + FWHM+ Theta + Elong + RMSE + Deltamu
 
+
+
 #####  Low level API #####
+
+def load_img_det(i):
+    raw_values = [float(x) for x in open("data/{0}_img.raw".format(i)).
+        read().split(" ") if len(x) > 0]
+    det = None
+    with open("data/{0}.det".format(i)) as f:
+        det = f.read().split(" ")
+    return np.array(raw_values).reshape(4, 64, 64), det
+
 
 rawdataset_files = [os.path.join("data", f) for f in next(os.walk("data"))[2] if f.endswith(".raw")]
 rawdataset_size = len(rawdataset_files)
+maximum_value = 65535.0
+#
+#for i in xrange(1, rawdataset_size + 1):
+#    print "Reading ",i
+#    img, det = load_img_det(i)
+#    maximum_value = max(maximum_value, img.max())
 
 aug_single_chunk_size = None # How big is one chunk ?
 aug_fold_out = None # One image in raw dataset produces N images in augmented dataset
