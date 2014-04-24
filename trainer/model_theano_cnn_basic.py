@@ -18,7 +18,7 @@ rng = numpy.random.RandomState(23455)
 
 learning_rate = 0.01
 batch_size = 20
-n_epochs = 2000
+n_epochs = 2
 L1_reg=0.000
 L2_reg=0.0001
 N=1000
@@ -279,3 +279,8 @@ if __name__ == "__main__":
                  (best_validation_loss * 100., test_score * 100.))
     print 'The code run for %d epochs, with %f epochs/sec' % (
         epoch, 1. * epoch / (end_time - start_time))
+
+    from visualize import show_4_ex
+
+    show_4_ex(layer1.W.get_value()[0])
+    show_4_ex(layer1.W.get_value()[1])
