@@ -18,6 +18,12 @@ rng = numpy.random.RandomState(23455)
 
 learning_rate = 0.01
 batch_size = 20
+
+
+
+learning_rate = 0.01
+batch_size = 200
+
 n_epochs = 2000
 L1_reg=0.000
 L2_reg=0.0001
@@ -271,6 +277,7 @@ if __name__ == "__main__":
                          test_score * 100.))
 
             if patience <= iter:
+                print "Patience ",patience, "iter ",iter
                 done_looping = True
                 break
 
