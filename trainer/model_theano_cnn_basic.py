@@ -21,7 +21,7 @@ batch_size = 20
 n_epochs = 2000
 L1_reg=0.000
 L2_reg=0.0001
-N=1000
+N=150000
 
 def shared_dataset(data_x, data_y, borrow=True):
     """ Function that loads the dataset into shared variables
@@ -113,6 +113,7 @@ if __name__ == "__main__":
     # filtering reduces the image size to (12 - 5 + 1, 12 - 5 + 1)=(8, 8)
     # maxpooling reduces this further to (8/2,8/2) = (4, 4)
     # 4D output tensor is thus of shape (20,50,4,4)
+    l1ims =  ( data_api.ImageSideFinal - 5 + 1)/2
     layer1 = LeNetConvPoolLayer(rng, input=layer0.output,
             image_shape=(batch_size, 20, ( data_api.ImageSideFinal - 5 + 1)/2, ( data_api.ImageSideFinal - 5 + 1)/2),
             filter_shape=(50, 20, 5, 5), poolsize=(2, 2))
@@ -128,7 +129,7 @@ if __name__ == "__main__":
 
     # construct a fully-connected sigmoidal layer
     layer2 = HiddenLayer(rng, input=layer2_input,
-                        n_in=50 * 5 * 5, n_out=500,
+                        n_in=50 * ((l1ims-4)/2)**2, n_out=500,
                         activation=T.tanh)
 
     # classify the values of the fully-connected sigmoidal layer
@@ -248,7 +249,7 @@ if __name__ == "__main__":
                 print('epoch %i, minibatch %i/%i, validation error %f %%' % \
                     (epoch, minibatch_index + 1, n_train_batches,
                     this_validation_loss * 100.))
-                print "validation prec ",this_validation_prec
+                print "validation prec ",this_validation_prec*100
 
                 # if we got the best validation score until now
                 if this_validation_loss < best_validation_loss:
