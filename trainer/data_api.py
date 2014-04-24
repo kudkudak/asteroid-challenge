@@ -123,8 +123,8 @@ def get_example_memory(id):
         dataset_in_memory = True
 
         # Create in-memory objects
-        X_extra_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ExtraColumns))
-        X_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ImageChannels * aug_image_side**2))
+        X_extra_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ExtraColumns), dtype="float32")
+        X_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ImageChannels * aug_image_side**2), dtype="float32")
         Y_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ), dtype=int)
 
 

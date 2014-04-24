@@ -26,10 +26,15 @@ batch_size = 200
 
 
 
-n_epochs = 2000
+n_epochs = 10
 L1_reg=0.000
 L2_reg=0.0001
-N=10000
+N=200000
+
+# N=20000
+
+add_extra = False
+
 def shared_dataset(data_x, data_y, borrow=True):
     """ Function that loads the dataset into shared variables
 
@@ -97,6 +102,7 @@ if __name__ == "__main__":
     # allocate symbolic variables for the data
     index = T.lscalar()  # index to a [mini]batch
     x = T.matrix()  # the data is presented as rasterized images (each being a 1-D row vector in x)
+    x_extra = T.matrix()  # the data is presented as rasterized images (each being a 1-D row vector in x)
     y = T.ivector()  # the labels are presented as 1D vector of [long int] labels
 
 
@@ -133,22 +139,46 @@ if __name__ == "__main__":
 
 
 
-    # Output (14,14) -> (5, 5)
-
-    # the HiddenLayer being fully-connected, it operates on 2D matrices of
-    # shape (batch_size,num_pixels) (i.e matrix of rasterized images).
-    # This will generate a matrix of shape (20, 32 * 4 * 4) = (20, 512)
-    layer2_input = layer1.output.flatten(2)
-
-    # construct a fully-connected sigmoidal layer
-    layer2 = HiddenLayer(rng, input=layer2_input,
-                        n_in=50 * ((l1ims-4)/2)**2, n_out=500,
-                        activation=T.tanh)
-
-    # classify the values of the fully-connected sigmoidal layer
-    layer3 = LogisticRegression(input=layer2.output, n_in=500, n_out=2)
 
 
+
+
+    layer2 = None
+    layer3 = None
+
+    if not add_extra:
+        # Output (14,14) -> (5, 5)
+
+        # the HiddenLayer being fully-connected, it operates on 2D matrices of
+        # shape (batch_size,num_pixels) (i.e matrix of rasterized images).
+        # This will generate a matrix of shape (20, 32 * 4 * 4) = (20, 512)
+        layer2_input = layer1.output.flatten(2)
+
+        # construct a fully-connected sigmoidal layer
+        layer2 = HiddenLayer(rng, input=layer2_input,
+                            n_in=50 * ((l1ims-4)/2)**2, n_out=500,
+                            activation=T.tanh)
+
+        # classify the values of the fully-connected sigmoidal layer
+        layer3 = LogisticRegression(input=layer2.output, n_in=500, n_out=2)
+
+    else:
+        # Output (14,14) -> (5, 5)
+
+        # the HiddenLayer being fully-connected, it operates on 2D matrices of
+        # shape (batch_size,num_pixels) (i.e matrix of rasterized images).
+        # This will generate a matrix of shape (20, 32 * 4 * 4) = (20, 512)
+        layer2_input = T.horizontal_stack(layer1.output.flatten(2), x_extra)
+
+        # construct a fully-connected sigmoidal layer
+        layer2 = HiddenLayer(rng, input=layer2_input,
+                            n_in=50 * ((l1ims-4)/2)**2 + ExtraColumns, n_out=500,
+                            activation=T.tanh)
+
+        # classify the values of the fully-connected sigmoidal layer
+        layer3 = LogisticRegression(input=layer2.output, n_in=500, n_out=2)
+
+    model = [layer0, layer1, layer2, layer3]
 
     # the cost we minimize during training is the negative log likelihood of
     # the model plus the regularization terms (L1 and L2); cost is expressed
@@ -188,25 +218,48 @@ if __name__ == "__main__":
     #print  train_set_x[index * batch_size: (index + 1) * batch_size,:]
     #### Final functions ####
 
-    # compiling a Theano function `train_model` that returns the cost, but in
-    # the same time updates the parameter of the model based on the rules
-    # defined in `updates`
-    train_model = theano.function(inputs=[index],
-            outputs=cost,
-            updates=updates,
-            givens={
-                x: train_set_x[index * batch_size: (index + 1) * batch_size],
-                y: train_set_y[index * batch_size: (index + 1) * batch_size]})
+
+    train_model, test_model = None, None
+
+    if not add_extra:
+        # compiling a Theano function `train_model` that returns the cost, but in
+        # the same time updates the parameter of the model based on the rules
+        # defined in `updates`
+        train_model = theano.function(inputs=[index],
+                outputs=cost,
+                updates=updates,
+                givens={
+                    x: train_set_x[index * batch_size: (index + 1) * batch_size],
+                    y: train_set_y[index * batch_size: (index + 1) * batch_size]})
 
 
 
-    test_model = theano.function(inputs=[index],
-            outputs=[errors,precision],
-            givens={
-                x: test_set_x[index * batch_size: (index + 1) * batch_size],
-                y: test_set_y[index * batch_size: (index + 1) * batch_size]})
+        test_model = theano.function(inputs=[index],
+                outputs=[errors,precision,layer3.ypred0(y),layer3.y0(y)],
+                givens={
+                    x: test_set_x[index * batch_size: (index + 1) * batch_size],
+                    y: test_set_y[index * batch_size: (index + 1) * batch_size]})
+
+    else:
+        # compiling a Theano function `train_model` that returns the cost, but in
+        # the same time updates the parameter of the model based on the rules
+        # defined in `updates`
+        train_model = theano.function(inputs=[index],
+                outputs=cost,
+                updates=updates,
+                givens={
+                    x: train_set_x[index * batch_size: (index + 1) * batch_size],
+                    x_extra: train_set_x_extra[index * batch_size: (index + 1) * batch_size],
+                    y: train_set_y[index * batch_size: (index + 1) * batch_size]})
 
 
+
+        test_model = theano.function(inputs=[index],
+                outputs=[errors,precision,layer3.ypred0(y),layer3.y0(y)],
+                givens={
+                    x: test_set_x[index * batch_size: (index + 1) * batch_size],
+                    x_extra: test_set_x_extra[index * batch_size: (index + 1) * batch_size],
+                    y: test_set_y[index * batch_size: (index + 1) * batch_size]})
 
 
     #############
@@ -252,8 +305,17 @@ if __name__ == "__main__":
                 for i in xrange(n_test_batches):
                     out = test_model(i)
                     validation_losses.append(out[0])
-                    validation_losses_prec.append(out[1])
 
+                    print out[2]
+                    print out[3]
+
+                    total, correct = 0., 0.
+                    for y_pred_val, y_tru_val in zip (out[2], out[3]):
+                        if y_tru_val == 0:
+                            total += 1.
+                            if y_pred_val == 0: correct += 1.
+
+                    if total > 0: validation_losses_prec.append(correct/total)
 
                 this_validation_loss = numpy.mean(validation_losses)
                 this_validation_prec = numpy.mean(validation_losses_prec)
@@ -294,6 +356,10 @@ if __name__ == "__main__":
                  (best_validation_loss * 100., test_score * 100.))
     print 'The code run for %d epochs, with %f epochs/sec' % (
         epoch, 1. * epoch / (end_time - start_time))
+
+
+    import cPickle
+    cPickle.dump(model, open("theano_cnn.pkl","w"))
 
     from visualize import show_4_ex
 
