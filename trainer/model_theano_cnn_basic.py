@@ -24,11 +24,12 @@ batch_size = 20
 learning_rate = 0.01
 batch_size = 200
 
+
+
 n_epochs = 2000
 L1_reg=0.000
 L2_reg=0.0001
-N=150000
-
+N=10000
 def shared_dataset(data_x, data_y, borrow=True):
     """ Function that loads the dataset into shared variables
 
@@ -59,7 +60,13 @@ if __name__ == "__main__":
 
 
     train_set_x, train_set_y, test_set_x, test_set_y = \
-        get_training_test_matrices_expanded(N=N, generator=generator_simple, add_x_extra=False)
+        get_training_test_matrices_expanded(N=N, generator=generator_simple, add_x_extra=True)
+
+
+    train_set_x_extra = train_set_x[:, train_set_x.shape[1]-ExtraColumns:]
+    train_set_x = train_set_x[:, 0:train_set_x.shape[1]-ExtraColumns]
+    test_set_x_extra = test_set_x[:, test_set_x.shape[1]-ExtraColumns:]
+    test_set_x = test_set_x[:, 0:test_set_x.shape[1]-ExtraColumns]
 
 
     #print train_set_x.shape
@@ -287,3 +294,15 @@ if __name__ == "__main__":
                  (best_validation_loss * 100., test_score * 100.))
     print 'The code run for %d epochs, with %f epochs/sec' % (
         epoch, 1. * epoch / (end_time - start_time))
+
+    from visualize import show_4_ex
+
+    from utils import tile_raster_images
+    import matplotlib.pylab as plt
+    #plt.imshow(tile_raster_images(
+    #         X=layer0.W.get_value(borrow=True).T,
+    #         img_shape=(data_api.ImageSideFinal, data_api.ImageSideFinal), tile_shape=(10, 10),
+    #         tile_spacing=(1, 1)))
+    #plt.show()
+    show_4_ex(layer0.W.get_value()[0])
+    show_4_ex(layer0.W.get_value()[1])
