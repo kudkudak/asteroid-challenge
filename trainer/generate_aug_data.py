@@ -9,9 +9,20 @@ from im_operators import *
 import os
 from data_api import *
 import json
-def preprocessing_gauss_eq_center(img, det):
-    return im_crop(ndimage.gaussian_filter(img / maximum_value - 0.5*np.ones(shape=img.shape), sigma=1.1),
+def preprocessing_gauss_center(img, det):
+    return im_crop(ndimage.gaussian_filter(img / maximum_value - 0.5*np.ones(shape=img.shape), sigma=1.05),
                    6.0)
+
+def preprocessing_gauss_center_smaller_gauss(img, det):
+    return im_crop(ndimage.gaussian_filter(img / maximum_value - 0.5*np.ones(shape=img.shape), sigma=0.95),
+                   6.0)
+
+
+def preprocessing_no_gauss(img, det):
+    return im_crop(img / maximum_value - 0.5*np.ones(shape=img.shape),
+                   6.0)
+
+
 
 def preprocessing_gauss_eq(img, det):
     return im_crop(exposure.equalize_hist(ndimage.gaussian_filter(img, sigma=1.1)),
@@ -179,4 +190,4 @@ def generate_aug(generator, preprocessor, chunk_size, folder=DataAugDir, prefix=
 
 
 if __name__ == "__main__":
-    generate_aug(generator_crop_flip_8fold, preprocessing_gauss_eq, chunk_size=160, limit=100)
+    generate_aug(generator_crop_flip_8fold, preprocessing_no_gauss, chunk_size=160)

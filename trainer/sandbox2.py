@@ -26,7 +26,7 @@ cPickle.dump(pca, open("trained_pca.pkl","w"))
 
 #print "PCA ratios: ", pca.explained_variance_ratio_
 
-clf = RandomForestClassifier(n_estimators=18, max_features=128,
+clf = RandomForestClassifier(n_estimators=24, max_features=250,
                              max_depth=None, min_samples_split=1, random_state=0, n_jobs=6, verbose=5)
 
 clf.fit(X_tr, Y_tr)
