@@ -102,12 +102,17 @@ def get_example_memory(id):
         X_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ImageChannels * aug_image_side**2))
         Y_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ), dtype=int)
 
+
+
         # Load data
         in_memory_id = 0
         print "Chunks_count=", chunks_count
         for i in xrange(chunks_count):
             if i >= (chunks_count - 1): break
             chk, chk_det = get_chunk(i)[0], get_chunk(i)[1]
+
+
+
             for j in xrange(len(chk_det)):
                 X_in_memory[in_memory_id, :] = chk[j, :, :, :].reshape((4* aug_image_side**2, ))
                 X_extra_in_memory[in_memory_id, :] = [float(x) for x in chk_det[j][9:15]]
@@ -136,10 +141,17 @@ def get_training_test_matrices_bare(train_percentage=0.9, oversample_negative=Fa
         # Test and train ids without oversampling
 
         dataset_size = min(limit_size, rawdataset_size*aug_fold_out)
+        dataset_chunk_number = min(chunks_count,dataset_size//aug_single_chunk_size + 1)
 
-        train_ids = np.random.choice( dataset_size,
-                                     int(dataset_size*train_percentage),
-                    replace=False)
+
+        # Chunks share the same fold out in almost all cases - pay attention to that
+        train_chunk_ids = np.random.choice(dataset_chunk_number, int(dataset_chunk_number*train_percentage))
+        train_ids = []
+        for id in train_chunk_ids:
+            train_ids += range(id*aug_single_chunk_size, (id+1)*aug_single_chunk_size)
+
+        random.shuffle(train_ids)
+
 
         set_of_ids = set(train_ids)
 

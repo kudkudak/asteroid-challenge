@@ -21,14 +21,14 @@ def load_img_det(i):
 
 def preprocessing_gauss_eq(img, det):
     return im_crop(exposure.equalize_hist(ndimage.gaussian_filter(img, sigma=1.1)),
-                   4.0)
+                   6.0)
 
 def preprocessing_gauss_eq_leave_2x(img, det):
     """
     2x bigger (32x32) - to allow for rotation and cropping later (random_transformation_generator)
     """
     return im_crop(exposure.equalize_hist(ndimage.gaussian_filter(img, sigma=1.1)),
-                   2.0)
+                   3.0)
 
 
 
@@ -59,9 +59,11 @@ Chunks are only for HDD storage efficiency in fact - we will generate chunks any
 Because data fits in RAM
 
 IT should be around 1-2GB RAM Only
+
+Make sure that chunk_size is divisible by fold_out and rather do not turn on divide
 """
 def generate_aug(generator, preprocessor, chunk_size, folder=DataAugDir, prefix="data_chunk_", limit=100000000,
-                 fold_out = 8
+                 fold_out = 8, divide=False
                  ):
 
     #Split to chunks positive and negatives
@@ -97,7 +99,7 @@ def generate_aug(generator, preprocessor, chunk_size, folder=DataAugDir, prefix=
         im_3_gen = generator(im_list[3], det, preprocessor)
 
 
-        if det[-1] == "1":
+        if det[-1] == "1" or not divide:
             # Prepare
             for im0, im1, im2, im3 in zip(im_0_gen, im_1_gen, im_2_gen, im_3_gen):
                 chunk_positive[chunk_positive_id,0,:,:] = im0
@@ -112,7 +114,7 @@ def generate_aug(generator, preprocessor, chunk_size, folder=DataAugDir, prefix=
                     print "Generated chunk ", chunk_count
 
                     for d in chunk_positive_dets:
-                        assert d[-1] == "1"
+                        assert d[-1] == "1" or not divide
                     assert len(chunk_positive_dets) == chunk_size
                     #
                     ## Random shuffle chunk
@@ -174,4 +176,4 @@ def generate_aug(generator, preprocessor, chunk_size, folder=DataAugDir, prefix=
         f.write(json.dumps(desc))
 
 
-generate_aug(generator_crop_flip_8fold, preprocessing_gauss_eq, chunk_size=1000)
+generate_aug(generator_crop_flip_8fold, preprocessing_gauss_eq, chunk_size=160, limit=100)
