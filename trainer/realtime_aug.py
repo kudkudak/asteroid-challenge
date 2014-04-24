@@ -3,144 +3,107 @@ Realtime augumentations
 
 Largely inspired by https://github.com/benanne/kaggle-galaxies/blob/master/realtime_augmentation.py
 Thanks!
-"""
 
+
+Do not CENTER them!
+"""
 import numpy as np
 import skimage
 import multiprocessing as mp
 import time
 import json
 import skimage.transform
+from im_operators import *
 
-# Prepare important global variables reading data aug descriptor
-IMAGE_HEIGHT = IMAGE_WIDTH = json.loads(open("data_aug.desc").read())["image_side"]
-orig_size_default = (IMAGE_WIDTH, IMAGE_HEIGHT)
-target_size_default = (IMAGE_WIDTH, IMAGE_HEIGHT )
-
-#center_shift = np.array((IMAGE_HEIGHT, IMAGE_WIDTH)) / 2. - 0.5
-#tform_uncenter = skimage.transform.SimilarityTransform(translation=-center_shift)
-#tform_center = skimage.transform.SimilarityTransform(translation=center_shift)
-
-
+augdataset_desc = json.loads(open("data_aug.desc").read())
+IMAGE_HEIGHT = IMAGE_WIDTH = augdataset_desc["image_side"]
+CROP_FACTOR = 2.0
 
 # Augument this much
 default_augmentation_params = {
-    'zoom_range': (1.0, 1.1),
+    'zoom_range': (0.9, 1.1),
     'rotation_range': (0, 360),
-    'shear_range': (0, 0),
-    'translation_range': (-1, 1),
+    "shear_range":(-0.2,0.2),
+    'translation_range': (-0.2, 0.2)
 }
 
+def load_img_det(i):
+    raw_values = [float(x) for x in open("data/{0}_img.raw".format(i)).
+        read().split(" ") if len(x) > 0]
+    det = None
+    with open("data/{0}.det".format(i)) as f:
+        det = f.read().split(" ")
+    return np.array(raw_values).reshape(4, 64, 64), det
 
-
-def fast_warp(img, tf, output_shape=target_size_default, mode='reflect'):
+def fast_warp(img, tf, output_shape=(53,53), mode='reflect'):
     """
-    This wrapper function is about five times faster than skimage.transform.warp, for our use case.
-    """
-    print img
-    print tf
-
-
-
+This wrapper function is about five times faster than skimage.transform.warp, for our use case.
+"""
     return skimage.transform.warp(img, tf)
-    #
-    #
-    #m = tf._matrix
-    #img_wf = np.empty((output_shape[0], output_shape[1], 3), dtype='float32')
-    #for k in xrange(3):
-    #    img_wf[..., k] = skimage.transform._warps_cy._warp_fast(img[..., k], m, output_shape=output_shape, mode=mode)
-    #return img_wf
+## TRANSFORMATIONS ##
 
-
+center_shift = np.array((IMAGE_HEIGHT, IMAGE_WIDTH)) / 2. - 0.5
+tform_center = skimage.transform.SimilarityTransform(translation=-center_shift)
+tform_uncenter = skimage.transform.SimilarityTransform(translation=center_shift)
 
 def build_augmentation_transform(zoom=1.0, rotation=0, shear=0, translation=(0, 0)):
-    tform_augment = skimage.transform.AffineTransform(scale=(1/zoom, 1/zoom),
-            rotation=np.deg2rad(rotation), shear=np.deg2rad(shear), translation=translation)
-
-    tform = tform_augment # shift to center, augment, shift back (for the rotation/shearing)
+    tform_augment = skimage.transform.AffineTransform(scale=(1/zoom, 1/zoom), rotation=np.deg2rad(rotation), shear=np.deg2rad(shear), translation=translation)
+    tform = tform_center + tform_augment + tform_uncenter
     return tform
 
 
-
-def build_ds_transform(ds_factor=1.0,
-                       orig_size=(IMAGE_WIDTH, IMAGE_HEIGHT),  do_shift=True):
-    """
-    This version is a bit more 'correct', it mimics the skimage.transform.resize function.
-    """
-    rows, cols = orig_size
-    trows, tcols = orig_size[0]*ds_factor, orig_size[1]*ds_factor
-    col_scale = row_scale = ds_factor
-    src_corners = np.array([[1, 1], [1, rows], [cols, rows]]) - 1
-    dst_corners = np.zeros(src_corners.shape, dtype=np.double)
-    # take into account that 0th pixel is at position (0.5, 0.5)
-    dst_corners[:, 0] = col_scale * (src_corners[:, 0] + 0.5) - 0.5
-    dst_corners[:, 1] = row_scale * (src_corners[:, 1] + 0.5) - 0.5
-
-    tform_ds = skimage.transform.AffineTransform()
-    tform_ds.estimate(src_corners, dst_corners)
-
-    if do_shift:
-        shift_x = cols / (2 * ds_factor) - tcols / 2.0
-        shift_y = rows / (2 * ds_factor) - trows / 2.0
-        tform_shift_ds = skimage.transform.SimilarityTransform(translation=(shift_x, shift_y))
-        return tform_shift_ds + tform_ds
-    else:
-        return tform_ds
-
-
-def random_perturbation_transform(zoom_range, rotation_range, shear_range, translation_range, do_flip=False):
+def _random_perturbation_transform(img, zoom_range, rotation_range, shear_range,  translation_range, do_flip=False):
     # random shift [-4, 4] - shift no longer needs to be integer!
     shift_x = np.random.uniform(*translation_range)
     shift_y = np.random.uniform(*translation_range)
+
     translation = (shift_x, shift_y)
-
-    # random rotation [0, 360]
     rotation = np.random.uniform(*rotation_range) # there is no post-augmentation, so full rotations here!
-
-    # random shear [0, 5]
     shear = np.random.uniform(*shear_range)
 
-    # # flip
-    if do_flip and (np.random.randint(2) > 0): # flip half of the time
-        shear += 180
-        rotation += 180
-        # shear by 180 degrees is equivalent to rotation by 180 degrees + flip.
-        # So after that we rotate it another 180 degrees to get just the flip.
-
-    # random zoom [0.9, 1.1]
-    # zoom = np.random.uniform(*zoom_range)
     log_zoom_range = [np.log(z) for z in zoom_range]
     zoom = np.exp(np.random.uniform(*log_zoom_range)) # for a zoom factor this sampling approach makes more sense.
-    # the range should be multiplicatively symmetric, so [1/1.1, 1.1] instead of [0.9, 1.1] makes more sense.
 
-    return build_augmentation_transform(zoom, rotation, shear, translation)
+    x = im_rescale(im_rotate(img, rotation), zoom)
 
-tform_ds_cropped5 = build_ds_transform(2.0)
-ds_transforms_default = skimage.transform.SimilarityTransform()
+    x = skimage.transform.warp(x, skimage.transform.AffineTransform(translation=translation, shear=shear))
 
-
-
-def perturb_and_dscrop(img, ds_transform=ds_transforms_default, \
-                                        augmentation_params=default_augmentation_params, target_size=target_size_default):
-    tform_augment = random_perturbation_transform(**augmentation_params)
-    return fast_warp(img, ds_transform + tform_augment, output_shape=target_size, mode='reflect').astype('float64')
+    return im_crop(x, CROP_FACTOR)
 
 
-
-from data_api import get_example
-from visualize import *
-
-im1, det = get_example(600)
-
-print im1.shape
+"""
+Exported generator to data_api
+"""
+def generator_simple(img):
+    return _random_perturbation_transform(img, **default_augmentation_params)
 
 
-im1 = im1.reshape(4, IMAGE_WIDTH, IMAGE_HEIGHT)[0]
+if __name__ == "__main__":
+    from data_api import get_example
+    from visualize import *
 
-show_4_ex([im1, im1, im1, im1], det)
 
-print perturb_and_dscrop(im1)
+    im1, det = get_example(200)
 
-show_4_ex([ perturb_and_dscrop(im1),  perturb_and_dscrop(im1),  perturb_and_dscrop(im1),  perturb_and_dscrop(im1)], det)
 
-print det
+    
+    im1 = im1.reshape(4, IMAGE_WIDTH, IMAGE_HEIGHT)[0]
+
+    print im1
+    show_4_ex([im1, im1, im1, im1],det )
+    #
+    #print perturb_and_dscrop(im1)
+
+    im1_pet = _random_perturbation_transform(im1, **default_augmentation_params)
+    im2_pet = _random_perturbation_transform(im1, **default_augmentation_params)
+    im3_pet = _random_perturbation_transform(im1, **default_augmentation_params)
+
+    print im1_pet.shape
+
+    show_4_ex([ im2_pet, im1_pet, im3_pet, im_crop(im1, CROP_FACTOR)], det)
+    #show_4_ex([ perturb_and_dscrop(im1),  perturb_and_dscrop(im1),  perturb_and_dscrop(im1),  perturb_and_dscrop(im1)], det)
+
+    print det
+
+
+

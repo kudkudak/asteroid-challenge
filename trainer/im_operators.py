@@ -24,6 +24,29 @@ Anomaly detector?
 10435   896 - exact proportions. Not very good 91% - 9%
 """
 
+def im_translate(img, shift_x, shift_y):
+    ## this could probably be a lot easier... meh.
+    # downsampling afterwards is recommended
+    translate_img = np.zeros_like(img, dtype=img.dtype)
+
+    if shift_x >= 0:
+        slice_x_src = slice(None, img.shape[0] - shift_x, None)
+        slice_x_tgt = slice(shift_x, None, None)
+    else:
+        slice_x_src = slice(- shift_x, None, None)
+        slice_x_tgt = slice(None, img.shape[0] + shift_x, None)
+
+    if shift_y >= 0:
+        slice_y_src = slice(None, img.shape[1] - shift_y, None)
+        slice_y_tgt = slice(shift_y, None, None)
+    else:
+        slice_y_src = slice(- shift_y, None, None)
+        slice_y_tgt = slice(None, img.shape[1] + shift_y, None)
+
+    translate_img[slice_x_tgt, slice_y_tgt] = img[slice_x_src, slice_y_src]
+
+    return  translate_img
+
 
 def im_flip(img, flip_h, flip_v):
     if flip_h:
@@ -31,6 +54,7 @@ def im_flip(img, flip_h, flip_v):
     if flip_v:
         img = img[:, ::-1]
     return img
+
 def im_rotate(img, angle):
     return skimage.transform.rotate(img, angle, mode='reflect')
 

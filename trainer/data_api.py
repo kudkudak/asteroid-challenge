@@ -3,6 +3,12 @@ import json
 import numpy as np
 import random
 from utils import cached_HDD, cached_in_memory, timed
+import skimage
+import multiprocessing as mp
+import time
+import json
+
+
 
 ##### Constants #####
 DataAugDir = "data_aug"
@@ -24,7 +30,12 @@ def load_img_det(i):
 
 
 rawdataset_files = [os.path.join("data", f) for f in next(os.walk("data"))[2] if f.endswith(".raw")]
+####
+rawdataset_files = rawdataset_files[0:1000] ### ERASE THIS LINE
 rawdataset_size = len(rawdataset_files)
+
+
+
 maximum_value = 65535.0
 #
 #for i in xrange(1, rawdataset_size + 1):
@@ -137,6 +148,8 @@ def get_example_memory(id):
                 in_memory_id += 1
 
         # Normalize X_extra_in_memory
+        X_in_memory[0:in_memory_id,:] = normalize(X_in_memory[0:in_memory_id,:], axis=1, norm='l1')
+        # Normalize X_extra_in_memory
         X_extra_in_memory = normalize(X_extra_in_memory, axis=1, norm='l1')
 
 
@@ -178,6 +191,7 @@ def get_training_test_matrices_bare(train_percentage=0.9, oversample_negative=Fa
         # Load into memory
         get_example_memory(0)
 
+        # Normalized - ok
         if not add_x_extra:
             return X_in_memory[train_ids], Y_in_memory[train_ids, :], X_in_memory[test_ids, :], Y_in_memory[test_ids]
         else:
@@ -225,6 +239,52 @@ def get_training_test_generators_bare(train_percentage=0.9, oversample_negative=
 
 
 
+from itertools import cycle
+def _augemented_generator(ids, return_chunk_size = 0):
+    for i in cycle(ids):
+
+
+
+#
+#def realtime_augmented_data_gen(num_chunks=None, chunk_size=CHUNK_SIZE, augmentation_params=default_augmentation_params,
+#                                ds_transforms=ds_transforms_default, target_sizes=None, processor_class=LoadAndProcess):
+#    if target_sizes is None: # default to (53,53) for backwards compatibility
+#        target_sizes = [(53, 53) for _ in xrange(len(ds_transforms))]
+#
+#    n = 0 # number of chunks yielded so far
+#    while True:
+#        if num_chunks is not None and n >= num_chunks:
+#            # print "DEBUG: DATA GENERATION COMPLETED"
+#            break
+#
+#        # start_time = time.time()
+#        selected_indices = select_indices(num_train, chunk_size)
+#        labels = y_train[selected_indices]
+#
+#        process_func = processor_class(ds_transforms, augmentation_params, target_sizes)
+#
+#        target_arrays = [np.empty((chunk_size, size_x, size_y, 3), dtype='float32') for size_x, size_y in target_sizes]
+#        pool = mp.Pool(NUM_PROCESSES)
+#        gen = pool.imap(process_func, selected_indices, chunksize=100) # lower chunksize seems to help to keep memory usage in check
+#
+#        for k, imgs in enumerate(gen):
+#            # print ">>> converting data: %d" % k
+#            for i, img in enumerate(imgs):
+#                target_arrays[i][k] = img
+#
+#        pool.close()
+#        pool.join()
+#
+#        # TODO: optionally do post-augmentation here
+#
+#        target_arrays.append(labels)
+#
+#        # duration = time.time() - start_time
+#        # print "chunk generation took %.2f seconds" % duration
+#
+#        yield target_arrays, chunk_size
+#
+#        n += 1
 
 
 

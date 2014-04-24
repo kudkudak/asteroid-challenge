@@ -48,7 +48,7 @@ clf.fit(X_tr, Y_tr)
 print clf.feature_importances_
 tp, tn, fp, fn = _tp_tn_fp_fn(Y_st, clf.predict(X_tst))
 
-print "Accuracy ", (tp+tn)/(tp+tn+fp+fn), "Negative precision ", tn/(tn+fn)
+print "Accuracy ", (tp+tn)/(tp+tn+fp+fn), "Negative precision ", tn/(tn+fn), "Precision ", tp/(tp+fp)
 
 cPickle.dump(clf, open("rndforest.pkl","w"))
 
