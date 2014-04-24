@@ -24,7 +24,7 @@ from skimage import data
 from skimage.filter.rank import entropy
 from skimage.morphology import disk
 from skimage.util import img_as_ubyte
-print maximum_value
+print MaximumPixelIntensity
 from skimage import data, filter, color
 from skimage.transform import hough_circle
 from skimage.feature import peak_local_max
@@ -35,16 +35,16 @@ from skimage.data import camera
 from skimage.filter import roberts, sobel
 
 def preprocessing_gauss_center_entr(img, det):
-    return im_crop(entropy(ndimage.gaussian_filter((img / maximum_value), sigma=0.95)
+    return im_crop(entropy(ndimage.gaussian_filter((img / MaximumPixelIntensity), sigma=0.95)
                    , disk(6)), 6.0)
 
 def preprocessing_gauss_center(img, det):
-    return im_crop(ndimage.gaussian_filter((img / maximum_value), sigma=0.95)
+    return im_crop(ndimage.gaussian_filter((img / MaximumPixelIntensity), sigma=0.95)
                    , 6.0)
 
 
 def preprocessing_center(img, det):
-    return im_crop((img / maximum_value)
+    return im_crop((img / MaximumPixelIntensity)
                    , 6.0)
 
 

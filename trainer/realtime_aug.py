@@ -14,11 +14,12 @@ import time
 import json
 import skimage.transform
 from im_operators import *
+import config
 
 ### Constants - low level API
-augdataset_desc = json.loads(open("data_aug.desc").read())
+augdataset_desc = json.loads(open(os.path.join(config.DataAugDir,"data_aug.desc")).read())
 IMAGE_HEIGHT = IMAGE_WIDTH = augdataset_desc["image_side"]
-CROP_FACTOR = 2.0
+CROP_FACTOR = augdataset_desc["crop_factor"]
 
 # Augument this much
 default_augmentation_params = {

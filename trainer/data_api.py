@@ -9,14 +9,7 @@ import time
 import json
 from itertools import cycle
 from realtime_aug import *
-
-
-##### Constants #####
-DataAugDir = "data_aug"
-ImageChannels = int(4)
-ImageSide = int(64)
-ExtraColumns = 1+1+1+1+1+1 # Magnitu + FWHM+ Theta + Elong + RMSE + Deltamu
-
+from config import *
 
 
 
@@ -33,12 +26,11 @@ def load_img_det(i):
 
 rawdataset_files = [os.path.join("data", f) for f in next(os.walk("data"))[2] if f.endswith(".raw")]
 ####
-rawdataset_files = rawdataset_files[0:3000] ### ERASE THIS LINE
+rawdataset_files = rawdataset_files[0:1000] ### ERASE THIS LINE
 rawdataset_size = len(rawdataset_files)
 
 
 
-maximum_value = 65535.0
 #
 #for i in xrange(1, rawdataset_size + 1):
 #    print "Reading ",i
@@ -51,7 +43,7 @@ aug_image_side = None # Current image side in augumented dataset
 
 try:
 
-    augdataset_desc = json.loads(open("data_aug.desc").read())
+    augdataset_desc = json.loads(open(os.path.join(DataAugDir,"data_aug.desc")).read())
     aug_single_chunk_size = augdataset_desc["chunk_size"]
     aug_fold_out = augdataset_desc["fold_out"]
     aug_image_side = augdataset_desc["image_side"]
@@ -78,9 +70,10 @@ chunks_count = len(chunk_files)
 ImageSideFinal = int(aug_image_side // CROP_FACTOR) # Crop factor from real_aug
 
 
-print "=======================\n"
+print "======================="
 print "DATAAPI: Chunks count=", chunks_count, "so examples=", chunks_count*aug_single_chunk_size,\
     " Raw dataset size = ",rawdataset_size
+print "DATAAPI: ImageSideFinal=", ImageSideFinal, " reduced from ", aug_image_side
 print "==========================\n"
 
 def get_chunk(id):
@@ -157,11 +150,17 @@ def get_example_memory(id):
                 Y_in_memory[in_memory_id] = 1 if float(chk_det[j][-1]) > 0.0 else 0
                 in_memory_id += 1
 
-        # Normalize X_extra_in_memory
-        X_in_memory[0:in_memory_id,:] = normalize(X_in_memory[0:in_memory_id,:], axis=1, norm='l1')
-        # Normalize X_extra_in_memory
-        X_extra_in_memory = normalize(X_extra_in_memory, axis=1, norm='l1')
+        try:
+            # Normalize X_extra_in_memory
+            X_in_memory[0:in_memory_id,:] = normalize(X_in_memory[0:in_memory_id,:], axis=1, norm='l1')
+        except:
+            pass
 
+        try:
+            # Normalize X_extra_in_memory
+            X_extra_in_memory = normalize(X_extra_in_memory, axis=1, norm='l1')
+        except:
+            pass
 
 
     return X_in_memory[id, :], Y_in_memory[id], X_extra_in_memory[id, :]

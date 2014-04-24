@@ -2,32 +2,48 @@
 File transforms files in data/* to data_aug/*.
 In short - makes more images
 
+Writes them aout to requested file
 """
+
 import matplotlib.pylab as pl
 from matplotlib import animation
 import numpy as np
 from skimage import exposure
-from im_operators import *
 import os
-from data_api import *
 import json
+
+from im_operators import *
+import config
+
+def load_img_det(i):
+    raw_values = [float(x) for x in open("data/{0}_img.raw".format(i)).
+        read().split(" ") if len(x) > 0]
+    det = None
+    with open("data/{0}.det".format(i)) as f:
+        det = f.read().split(" ")
+    return np.array(raw_values).reshape(4, 64, 64), det
+
 
 
 def preprocessing_gauss(img, det):
-    return im_crop(ndimage.gaussian_filter(img / maximum_value, sigma=1.05),
+    return im_crop(ndimage.gaussian_filter(img / config.MaximumPixelIntensity, sigma=1.05),
                    6.0)
 
 def preprocessing_gauss_smaller_gauss(img, det):
-    return im_crop(ndimage.gaussian_filter(img / maximum_value , sigma=0.95),
+    return im_crop(ndimage.gaussian_filter(img / config.MaximumPixelIntensity , sigma=0.95),
                    6.0)
 
 
 def preprocessing_no_gauss(img, det):
-    return im_crop(img / maximum_value ,
+    return im_crop(img / config.MaximumPixelIntensity ,
                    6.0)
 
-def preprocessing_no_gauss_2x(img, det):
-    return im_crop(img / maximum_value,
+def preprocessing_no_gauss_1x(img, det):
+    return im_crop(img / config.MaximumPixelIntensity,
+                   1.0)
+
+def preprocessing_no_gauss_3x(img, det):
+    return im_crop(img / config.MaximumPixelIntensity,
                    3.0)
 
 def preprocessing_gauss_eq(img, det):
@@ -73,12 +89,10 @@ IT should be around 1-2GB RAM Only
 
 Make sure that chunk_size is divisible by fold_out and rather do not turn on divide
 """
-def generate_aug(generator, preprocessor, chunk_size, folder=DataAugDir, prefix="data_chunk_", limit=100000000,
-                 fold_out = 8, divide=False
+def generate_aug(generator, preprocessor, chunk_size, folder=config.DataAugDir, prefix="data_chunk_",
+                 fold_out = 8, divide=False, crop_factor = 2.0
                  ):
-
-    # No mixing in between chunks differen fold outs
-    #n assert chunk_size % fold_out == 0
+    assert chunk_size % fold_out == 0
 
     #Split to chunks positive and negatives
 
@@ -101,12 +115,7 @@ def generate_aug(generator, preprocessor, chunk_size, folder=DataAugDir, prefix=
     ## Pregenerate ids
     #ids = range(chunk_size)
 
-    for i in xrange(1, rawdataset_size+1):
-
-
-        if chunk_count > limit:
-            break
-
+    for i in xrange(1, config.rawdataset_size+1):
         im_list, det = load_img_det(i)
 
         im_0_gen = generator(im_list[0], det, preprocessor)
@@ -190,10 +199,10 @@ def generate_aug(generator, preprocessor, chunk_size, folder=DataAugDir, prefix=
     print "Generated ",chunk_count, " chunks"
 
     ### Write out desc
-    desc = {"chunk_size": chunk_size, "fold_out": fold_out, "image_side":im_test.shape[0]}
-    with open("data_aug.desc", "w") as f:
+    desc = {"chunk_size": chunk_size, "fold_out": fold_out, "image_side":im_test.shape[0], "crop_factor":crop_factor}
+    with open(os.path.join(folder, "data_aug.desc"), "w") as f:
         f.write(json.dumps(desc))
 
 
 if __name__ == "__main__":
-    generate_aug(generator_crop_flip_8fold, preprocessing_no_gauss_2x, chunk_size=160)
+    generate_aug(generator_crop_flip_8fold, preprocessing_no_gauss_1x, chunk_size=160)

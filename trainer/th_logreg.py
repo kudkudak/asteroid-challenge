@@ -4,6 +4,7 @@ import theano.tensor as T
 from theano.tensor.nnet import conv
 import numpy
 import time
+from theano.ifelse import ifelse
 
 
 class LogisticRegression(object):
@@ -61,6 +62,30 @@ class LogisticRegression(object):
         return -T.mean(T.log(self.p_y_given_x)[T.arange(y.shape[0]), y])
 
 
+
+
+    #def precision(self, y):
+    #    """Return a float representing the number of errors in the minibatch
+    #    over the total number of examples of the minibatch ; zero
+    #    one loss over the size of the minibatch
+    #    """
+    #
+    #    def sum_precision(y_value_true, y_value_pred, sum):
+    #        sum += y_value_true==0 and y_value_pred==y_value_pred
+    #
+    #    def sum_positive(y_value_true, sum):
+    #        sum += y_value_true == 0
+    #
+    #
+    #
+    #    return T.scan
+
+    def precision(self, y):
+        """Return a float representing the number of errors in the minibatch
+        over the total number of examples of the minibatch ; zero
+        one loss over the size of the minibatch
+        """
+        return T.mean(T.neq(self.y_pred[T.eq(y,0)], y[T.eq(y, 0)]))
 
     def errors(self, y):
         """Return a float representing the number of errors in the minibatch
