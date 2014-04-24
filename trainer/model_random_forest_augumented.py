@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 print get_example_memory(0)
 
 print "SVM Test.."
-X_tr, Y_tr, X_tst, Y_st =  get_training_test_matrices_expanded(N=10000, generator=generator_simple)
+X_tr, Y_tr, X_tst, Y_st =  get_training_test_matrices_expanded(N=60000, generator=generator_simple)
 
 print "Training on ", X_tr.shape
 
