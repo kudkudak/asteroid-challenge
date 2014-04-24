@@ -196,4 +196,4 @@ def generate_aug(generator, preprocessor, chunk_size, folder=DataAugDir, prefix=
 
 
 if __name__ == "__main__":
-    generate_aug(generator_crop_flip_8fold, preprocessing_no_gauss_2x, chunk_size=160, limit=100)
+    generate_aug(generator_crop_flip_8fold, preprocessing_no_gauss_2x, chunk_size=160)

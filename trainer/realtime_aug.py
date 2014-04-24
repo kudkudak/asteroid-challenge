@@ -15,6 +15,7 @@ import json
 import skimage.transform
 from im_operators import *
 
+### Constants - low level API
 augdataset_desc = json.loads(open("data_aug.desc").read())
 IMAGE_HEIGHT = IMAGE_WIDTH = augdataset_desc["image_side"]
 CROP_FACTOR = 2.0
@@ -27,32 +28,13 @@ default_augmentation_params = {
     'translation_range': (-0.2, 0.2)
 }
 
-def load_img_det(i):
-    raw_values = [float(x) for x in open("data/{0}_img.raw".format(i)).
-        read().split(" ") if len(x) > 0]
-    det = None
-    with open("data/{0}.det".format(i)) as f:
-        det = f.read().split(" ")
-    return np.array(raw_values).reshape(4, 64, 64), det
 
-def fast_warp(img, tf, output_shape=(53,53), mode='reflect'):
+
+
+def _random_perturbation_transform(zoom_range, rotation_range, shear_range,  translation_range, do_flip=False):
     """
-This wrapper function is about five times faster than skimage.transform.warp, for our use case.
-"""
-    return skimage.transform.warp(img, tf)
-## TRANSFORMATIONS ##
-
-center_shift = np.array((IMAGE_HEIGHT, IMAGE_WIDTH)) / 2. - 0.5
-tform_center = skimage.transform.SimilarityTransform(translation=-center_shift)
-tform_uncenter = skimage.transform.SimilarityTransform(translation=center_shift)
-
-def build_augmentation_transform(zoom=1.0, rotation=0, shear=0, translation=(0, 0)):
-    tform_augment = skimage.transform.AffineTransform(scale=(1/zoom, 1/zoom), rotation=np.deg2rad(rotation), shear=np.deg2rad(shear), translation=translation)
-    tform = tform_center + tform_augment + tform_uncenter
-    return tform
-
-
-def _random_perturbation_transform(img, zoom_range, rotation_range, shear_range,  translation_range, do_flip=False):
+    Generates transforming function
+    """
     # random shift [-4, 4] - shift no longer needs to be integer!
     shift_x = np.random.uniform(*translation_range)
     shift_y = np.random.uniform(*translation_range)
@@ -64,46 +46,65 @@ def _random_perturbation_transform(img, zoom_range, rotation_range, shear_range,
     log_zoom_range = [np.log(z) for z in zoom_range]
     zoom = np.exp(np.random.uniform(*log_zoom_range)) # for a zoom factor this sampling approach makes more sense.
 
-    x = im_rescale(im_rotate(img, rotation), zoom)
+    def transf(x):
+        x = im_rescale(im_rotate(x, rotation), zoom)
+        x = skimage.transform.warp(x, skimage.transform.AffineTransform(translation=translation, shear=shear))
+        return im_crop(x, CROP_FACTOR)
 
-    x = skimage.transform.warp(x, skimage.transform.AffineTransform(translation=translation, shear=shear))
-
-    return im_crop(x, CROP_FACTOR)
+    return transf
 
 
 """
 Exported generator to data_api
 """
 def generator_simple(img):
-    return _random_perturbation_transform(img, **default_augmentation_params)
+    """
+    Generator transforms 4xXxY -> 4xX/CROP_FACTORxY/CROP_FACTOR
+    """
+
+    res = np.empty(shape=(4, IMAGE_WIDTH//CROP_FACTOR, IMAGE_HEIGHT//CROP_FACTOR))
+
+    transf = _random_perturbation_transform(**default_augmentation_params)
+
+    for i in xrange(4):
+        res[i,:,:] = transf(img[i,:,:])
+
+    return res
+
+def default_generator(img):
+    res = np.empty(shape=(4, IMAGE_WIDTH//CROP_FACTOR, IMAGE_HEIGHT//CROP_FACTOR))
+    for i in xrange(4):
+        res[i,:,:] = im_crop(img[i,:,:], CROP_FACTOR)
+    return res
 
 
 if __name__ == "__main__":
-    from data_api import get_example
-    from visualize import *
-
-
-    im1, det = get_example(200)
-
-
-    
-    im1 = im1.reshape(4, IMAGE_WIDTH, IMAGE_HEIGHT)[0]
-
-    print im1
-    show_4_ex([im1, im1, im1, im1],det )
+    pass # not confogrming to api
+    #from data_api import get_example
+    #from visualize import *
     #
-    #print perturb_and_dscrop(im1)
-
-    im1_pet = _random_perturbation_transform(im1, **default_augmentation_params)
-    im2_pet = _random_perturbation_transform(im1, **default_augmentation_params)
-    im3_pet = _random_perturbation_transform(im1, **default_augmentation_params)
-
-    print im1_pet.shape
-
-    show_4_ex([ im2_pet, im1_pet, im3_pet, im_crop(im1, CROP_FACTOR)], det)
-    #show_4_ex([ perturb_and_dscrop(im1),  perturb_and_dscrop(im1),  perturb_and_dscrop(im1),  perturb_and_dscrop(im1)], det)
-
-    print det
-
+    #
+    #im1, det = get_example(200)
+    #
+    #
+    #
+    #im1 = im1.reshape(4, IMAGE_WIDTH, IMAGE_HEIGHT)[0]
+    #
+    #print im1
+    #show_4_ex([im1, im1, im1, im1],det )
+    ##
+    ##print perturb_and_dscrop(im1)
+    #
+    #im1_pet = _random_perturbation_transform(im1, **default_augmentation_params)
+    #im2_pet = _random_perturbation_transform(im1, **default_augmentation_params)
+    #im3_pet = _random_perturbation_transform(im1, **default_augmentation_params)
+    #
+    #print im1_pet.shape
+    #
+    #show_4_ex([ im2_pet, im1_pet, im3_pet, im_crop(im1, CROP_FACTOR)], det)
+    ##show_4_ex([ perturb_and_dscrop(im1),  perturb_and_dscrop(im1),  perturb_and_dscrop(im1),  perturb_and_dscrop(im1)], det)
+    #
+    #print det
+    #
 
 

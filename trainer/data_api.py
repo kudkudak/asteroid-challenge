@@ -7,7 +7,8 @@ import skimage
 import multiprocessing as mp
 import time
 import json
-
+from itertools import cycle
+from realtime_aug import *
 
 
 ##### Constants #####
@@ -15,6 +16,7 @@ DataAugDir = "data_aug"
 ImageChannels = 4
 ImageSide = 64
 ExtraColumns = 1+1+1+1+1+1 # Magnitu + FWHM+ Theta + Elong + RMSE + Deltamu
+
 
 
 
@@ -31,7 +33,7 @@ def load_img_det(i):
 
 rawdataset_files = [os.path.join("data", f) for f in next(os.walk("data"))[2] if f.endswith(".raw")]
 ####
-rawdataset_files = rawdataset_files[0:1000] ### ERASE THIS LINE
+rawdataset_files = rawdataset_files[0:6000] ### ERASE THIS LINE
 rawdataset_size = len(rawdataset_files)
 
 
@@ -72,6 +74,10 @@ positive_chunks = [f for f in chunk_files]
 chunks_count = len(chunk_files)
 
 
+print "=======================\n"
+print "DATAAPI: Chunks count=", chunks_count, "so examples=", chunks_count*aug_single_chunk_size,\
+    " Raw dataset size = ",rawdataset_size
+print "==========================\n"
 
 def get_chunk(id):
     f_positive = os.path.join(DataAugDir, "p_data_chunk_"+str(id)+".npy")
@@ -162,7 +168,7 @@ import numpy as np
 @timed
 @cached_HDD
 def get_training_test_matrices_bare(train_percentage=0.9, oversample_negative=False, limit_size = 10000000000,
-                                    add_x_extra=True):
+                                    add_x_extra=True, generators=[], feature_gen=[]):
     """ Oversampling is useful if class are imbalanced """
     assert oversample_negative == False
     assert aug_fold_out is not None
@@ -203,6 +209,106 @@ def get_training_test_matrices_bare(train_percentage=0.9, oversample_negative=Fa
 
 
 
+
+
+@timed
+@cached_HDD
+def get_training_test_matrices_expanded(train_percentage=0.9, N = 100,
+                                       add_x_extra=True, generator= default_generator, feature_gen=None):
+    """
+    Gets expanded dataset
+    """
+    size_training = int(N*train_percentage)
+    size_testing = N - size_training
+    trn_iterator, tst_iterator = get_cycled_training_test_generators_bare(train_percentage=train_percentage,
+                                                        add_x_extra=add_x_extra,
+                                                        generator=generator,
+                                                        feature_gen=feature_gen)
+
+
+    # Fetch dynamically dimensions
+    check_dim_example, check_dim_answer = next(trn_iterator)
+    next(tst_iterator)
+
+    X_train = np.empty(shape=(size_training, check_dim_example.shape[0]))
+    X_test = np.empty(shape=(size_testing, check_dim_example.shape[0]))
+    Y_train = np.empty(shape=(size_training,))
+    Y_test = np.empty(shape=(size_testing,))
+
+    print "Filling in training dataset"
+    for id, (ex, label) in enumerate(trn_iterator):
+        X_train[id, :] = ex
+        Y_train[id] = label
+        if id>=size_training-1: break
+    print "Filling in testing dataset"
+    for id, (ex, label) in enumerate(tst_iterator):
+        X_test[id, :] = ex
+        Y_test[id] = label
+        if id>=size_testing-1: break
+
+    return X_train, Y_train, X_test, Y_test
+
+
+
+def get_cycled_training_test_generators_bare(train_percentage=0.9, oversample_negative=False, limit_size = 10000000000,
+                                       add_x_extra=True, generator = default_generator, feature_gen=None):
+    """ Oversampling is useful if class are imbalanced """
+    assert oversample_negative == False
+    assert aug_fold_out is not None
+    assert add_x_extra is True
+
+    if oversample_negative is False:
+        # Test and train ids without oversampling
+        dataset_size = min(limit_size, rawdataset_size*aug_fold_out)
+        dataset_chunk_number = min(chunks_count, dataset_size//aug_single_chunk_size + 1)
+
+
+        # Chunks share the same fold out in almost all cases - pay attention to that
+        train_chunk_ids = np.random.choice(dataset_chunk_number, int(dataset_chunk_number*train_percentage))
+        train_ids = []
+        for id in train_chunk_ids:
+            if id*aug_single_chunk_size >= dataset_size-1: break
+            train_ids += range(id*aug_single_chunk_size, min(dataset_size, (id+1)*aug_single_chunk_size))
+
+        random.shuffle(train_ids)
+
+
+        set_of_ids = set(train_ids)
+
+        test_ids = [id for id in xrange(dataset_size) if id not in set_of_ids]
+
+        # Load into memory
+        get_example_memory(0)
+
+        train_generator, test_generator = None, None
+
+
+        if add_x_extra:
+            def train_generator():
+                for i in cycle(train_ids):
+                    datum = get_example_memory(i)
+                    added_features = feature_gen(*datum) if feature_gen else []
+                    yield np.hstack(
+                        (generator(datum[0].reshape(4, aug_image_side, aug_image_side)).
+                         reshape(-1), datum[2], added_features)), datum[1]
+
+            def test_generator():
+                for i in cycle(test_ids):
+                    datum = get_example_memory(i)
+                    added_features = feature_gen(*datum) if feature_gen else []
+                    yield np.hstack((default_generator(datum[0].reshape(4, aug_image_side, aug_image_side)).
+                         reshape(-1), datum[2], added_features)), datum[1]
+
+
+
+        return train_generator(), test_generator()
+
+
+
+
+
+
+
 def get_training_test_generators_bare(train_percentage=0.9, oversample_negative=False, limit_size = 10000000000):
     """ Oversampling is useful if class are imbalanced """
     assert oversample_negative == False
@@ -239,9 +345,6 @@ def get_training_test_generators_bare(train_percentage=0.9, oversample_negative=
 
 
 
-from itertools import cycle
-def _augemented_generator(ids, return_chunk_size = 0):
-    for i in cycle(ids):
 
 
 
