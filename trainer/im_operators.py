@@ -86,7 +86,7 @@ def im_crop(img, ds_factor):
     shift_x = (size_x - cropped_size_x) // 2
     shift_y = (size_y - cropped_size_y) // 2
 
-    return img[shift_x:shift_x+cropped_size_x, shift_y:shift_y+cropped_size_y]
+    return img[int(shift_x):int(shift_x+cropped_size_x), int(shift_y):int(shift_y+cropped_size_y)]
 
 def im_lcn(img, sigma_mean, sigma_std):
     """

@@ -37,6 +37,10 @@ def preprocessing_gauss_smaller_gauss(img, det):
 def preprocessing_no_gauss(img, det):
     return im_crop(img / config.MaximumPixelIntensity ,
                    6.0)
+def preprocessing_no_gauss_2x(img, det):
+    return im_crop(img / config.MaximumPixelIntensity,
+                   2.0)
+
 
 def preprocessing_no_gauss_1x(img, det):
     return im_crop(img / config.MaximumPixelIntensity,
@@ -205,4 +209,4 @@ def generate_aug(generator, preprocessor, chunk_size, folder=config.DataAugDir, 
 
 
 if __name__ == "__main__":
-    generate_aug(generator_crop_flip_8fold, preprocessing_no_gauss_1x, chunk_size=160)
+    generate_aug(generator_crop_flip_8fold, preprocessing_no_gauss_2x, chunk_size=160, crop_factor=2.0)

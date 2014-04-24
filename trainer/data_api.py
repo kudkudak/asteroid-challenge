@@ -24,11 +24,6 @@ def load_img_det(i):
     return np.array(raw_values).reshape(4, 64, 64), det
 
 
-rawdataset_files = [os.path.join("data", f) for f in next(os.walk("data"))[2] if f.endswith(".raw")]
-####
-rawdataset_size = len(rawdataset_files)
-
-
 
 #
 #for i in xrange(1, rawdataset_size + 1):

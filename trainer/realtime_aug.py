@@ -18,8 +18,8 @@ import config
 
 ### Constants - low level API
 augdataset_desc = json.loads(open(os.path.join(config.DataAugDir,"data_aug.desc")).read())
-IMAGE_HEIGHT = IMAGE_WIDTH = augdataset_desc["image_side"]
-CROP_FACTOR = augdataset_desc["crop_factor"]
+IMAGE_HEIGHT = IMAGE_WIDTH = int(augdataset_desc["image_side"])
+CROP_FACTOR = int(augdataset_desc["crop_factor"])
 
 # Augument this much
 default_augmentation_params = {
