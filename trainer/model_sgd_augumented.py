@@ -40,17 +40,16 @@ def _tp_tn_fp_fn(y_true, y_pred):
 
 #print "PCA ratios: ", pca.explained_variance_ratio_
 
-clf = RandomForestClassifier(n_estimators=14, max_features=128,
-                             max_depth=None, min_samples_split=1, random_state=0, n_jobs=7, verbose=5)
+clf = sklearn.linear_model.SGDClassifier(loss='log', class_weight='auto')
 
-clf.fit(X_tr, Y_tr)
+for i in xrange(100):
+    clf.partial_fit(X_tr, Y_tr, classes=[0,1])
 
-print clf.feature_importances_
-tp, tn, fp, fn = _tp_tn_fp_fn(Y_st, clf.predict(X_tst))
+    tp, tn, fp, fn = _tp_tn_fp_fn(Y_st, clf.predict(X_tst))
 
-print "Accuracy ", (tp+tn)/(tp+tn+fp+fn), "Negative precision ", tn/(tn+fn), "Precision ", tp/(tp+fp)
+    print "Accuracy ", (tp+tn)/(tp+tn+fp+fn), "Negative precision ", tn/(tn+fn), "Precision ", tp/(tp+fp)
 
-cPickle.dump(clf, open("rndforest_2.pkl","w"))
+cPickle.dump(clf, open("sgd_1.pkl","w"))
 
 """
 

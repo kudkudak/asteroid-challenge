@@ -33,7 +33,6 @@ def load_img_det(i):
 
 rawdataset_files = [os.path.join("data", f) for f in next(os.walk("data"))[2] if f.endswith(".raw")]
 ####
-rawdataset_files = rawdataset_files[0:3000] ### ERASE THIS LINE
 rawdataset_size = len(rawdataset_files)
 
 
