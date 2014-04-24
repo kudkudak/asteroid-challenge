@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 print get_example_memory(0)
 
 print "SVM Test.."
-X_tr, Y_tr, X_tst, Y_st = get_training_test_matrices_bare(limit_size=aug_single_chunk_size*10)
+X_tr, Y_tr, X_tst, Y_st = get_training_test_matrices_bare()
 
 print "Training on ", X_tr.shape
 

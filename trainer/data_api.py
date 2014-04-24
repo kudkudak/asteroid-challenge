@@ -141,14 +141,15 @@ def get_training_test_matrices_bare(train_percentage=0.9, oversample_negative=Fa
         # Test and train ids without oversampling
 
         dataset_size = min(limit_size, rawdataset_size*aug_fold_out)
-        dataset_chunk_number = min(chunks_count,dataset_size//aug_single_chunk_size + 1)
+        dataset_chunk_number = min(chunks_count, dataset_size//aug_single_chunk_size + 1)
 
 
         # Chunks share the same fold out in almost all cases - pay attention to that
         train_chunk_ids = np.random.choice(dataset_chunk_number, int(dataset_chunk_number*train_percentage))
         train_ids = []
         for id in train_chunk_ids:
-            train_ids += range(id*aug_single_chunk_size, (id+1)*aug_single_chunk_size)
+            if id*aug_single_chunk_size >= dataset_size-1: break
+            train_ids += range(id*aug_single_chunk_size, min(dataset_size, (id+1)*aug_single_chunk_size))
 
         random.shuffle(train_ids)
 

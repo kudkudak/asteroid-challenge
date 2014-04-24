@@ -21,7 +21,7 @@ def load_img_det(i):
 
 def preprocessing_gauss_eq(img, det):
     return im_crop(exposure.equalize_hist(ndimage.gaussian_filter(img, sigma=1.1)),
-                   6.0)
+                   4.0)
 
 def preprocessing_gauss_eq_leave_2x(img, det):
     """
@@ -66,6 +66,9 @@ def generate_aug(generator, preprocessor, chunk_size, folder=DataAugDir, prefix=
                  fold_out = 8, divide=False
                  ):
 
+    # No mixing in between chunks differen fold outs
+    #n assert chunk_size % fold_out == 0
+
     #Split to chunks positive and negatives
 
     # Check size
@@ -88,6 +91,8 @@ def generate_aug(generator, preprocessor, chunk_size, folder=DataAugDir, prefix=
     #ids = range(chunk_size)
 
     for i in xrange(1, rawdataset_size+1):
+
+
         if chunk_count > limit:
             break
 
@@ -130,7 +135,7 @@ def generate_aug(generator, preprocessor, chunk_size, folder=DataAugDir, prefix=
                     chunk_count += 1
         else:
              # Prepare
-            for im0, im1, im2, im3 in zip(im_0_gen, im_1_gen, im_2_gen, im_3_gen):
+            for im0, im1, im2, im3 in zip(im_0_gen, im_1_gen, im_2_gen, im_3_gen): 
                 chunk_false[chunk_false_id,0,:,:] = im0
                 chunk_false[chunk_false_id,1,:,:] = im1
                 chunk_false[chunk_false_id,2,:,:] = im2
@@ -170,10 +175,14 @@ def generate_aug(generator, preprocessor, chunk_size, folder=DataAugDir, prefix=
         with open(os.path.join(folder,"n_"+ prefix+str(chunk_count)+"_dets.json"), "w") as f:
             f.write(json.dumps(chunk_false_dets))
 
+
+    print "Generated ",chunk_count, " chunks"
+
     ### Write out desc
     desc = {"chunk_size": chunk_size, "fold_out": fold_out, "image_side":im_test.shape[0]}
     with open("data_aug.desc", "w") as f:
         f.write(json.dumps(desc))
 
 
-generate_aug(generator_crop_flip_8fold, preprocessing_gauss_eq, chunk_size=160, limit=100)
+# Chunk size divicdes foldout
+generate_aug(generator_crop_flip_8fold, preprocessing_gauss_eq, chunk_size=160)
