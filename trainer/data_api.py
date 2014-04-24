@@ -13,8 +13,8 @@ from realtime_aug import *
 
 ##### Constants #####
 DataAugDir = "data_aug"
-ImageChannels = 4
-ImageSide = 64
+ImageChannels = int(4)
+ImageSide = int(64)
 ExtraColumns = 1+1+1+1+1+1 # Magnitu + FWHM+ Theta + Elong + RMSE + Deltamu
 
 
@@ -72,6 +72,10 @@ chunks_negative_ids = [int(f.split("_")[3].split(".")[0])
 
 positive_chunks = [f for f in chunk_files]
 chunks_count = len(chunk_files)
+
+
+# Image size final
+ImageSideFinal = int(aug_image_side // CROP_FACTOR) # Crop factor from real_aug
 
 
 print "=======================\n"
@@ -255,7 +259,7 @@ def get_cycled_training_test_generators_bare(train_percentage=0.9, oversample_ne
     """ Oversampling is useful if class are imbalanced """
     assert oversample_negative == False
     assert aug_fold_out is not None
-    assert add_x_extra is True
+
 
     if oversample_negative is False:
         # Test and train ids without oversampling
@@ -299,7 +303,21 @@ def get_cycled_training_test_generators_bare(train_percentage=0.9, oversample_ne
                     yield np.hstack((default_generator(datum[0].reshape(4, aug_image_side, aug_image_side)).
                          reshape(-1), datum[2], added_features)), datum[1]
 
+        else:
+            def train_generator():
+                for i in cycle(train_ids):
+                    datum = get_example_memory(i)
+                    added_features = feature_gen(*datum) if feature_gen else []
+                    yield np.hstack(
+                        (generator(datum[0].reshape(4, aug_image_side, aug_image_side)).
+                         reshape(-1), added_features)), datum[1]
 
+            def test_generator():
+                for i in cycle(test_ids):
+                    datum = get_example_memory(i)
+                    added_features = feature_gen(*datum) if feature_gen else []
+                    yield np.hstack((default_generator(datum[0].reshape(4, aug_image_side, aug_image_side)).
+                         reshape(-1), added_features)), datum[1]
 
         return train_generator(), test_generator()
 

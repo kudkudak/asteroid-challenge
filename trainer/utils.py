@@ -21,6 +21,7 @@ def cached_in_memory(func):
 
 
     def func_caching(*args, **dict_args):
+
         key = (func.__name__, args, frozenset(dict_args.items()))
         if key in cache_dict:
             return cache_dict[key]
@@ -32,10 +33,12 @@ def cached_in_memory(func):
     return func_caching
 import pickle
 CacheDirectory = "data_caches"
+import inspect
 def cached_HDD(func):
     def func_caching(*args, **dict_args):
+        print  #UUGLY HACK
         key = ''.join([a for a in
-                       str((func.__name__, args, frozenset(dict_args.items())))
+                       str((func.__name__, args, frozenset([x for x in dict_args.values() if str(x).find("0x") == -1])))
                        if a in "abcdefghijklmnoprstuwyxcz1234567890_qwertyuiopasdfghjklzxcvbnm"])
 
         #TODO: add logger..

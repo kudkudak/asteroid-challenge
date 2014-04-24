@@ -10,6 +10,7 @@ from th_hiddenlayer import HiddenLayer
 from th_cnn import LeNetConvPoolLayer
 from data_api import *
 from realtime_aug import *
+import data_api
 
 learning_rate = 0.1
 rng = numpy.random.RandomState(23455)
@@ -21,14 +22,95 @@ batch_size = 20
 n_epochs = 2000
 L1_reg=0.000
 L2_reg=0.0001
+N = 1000
 
+def load_data(dataset="dataset/mnist.pkl.gz"):
+    ''' Loads the dataset
 
+    :type dataset: string
+    :param dataset: the path to the dataset (here MNIST)
+    '''
+
+    #############
+    # LOAD DATA #
+    #############
+
+    # Download the MNIST dataset if it is not present
+    data_dir, data_file = os.path.split(dataset)
+    if data_dir == "" and not os.path.isfile(dataset):
+        # Check if dataset is in the data directory.
+        new_path = os.path.join(os.path.split(__file__)[0], "..", "data", dataset)
+        if os.path.isfile(new_path) or data_file == 'mnist.pkl.gz':
+            dataset = new_path
+
+    if (not os.path.isfile(dataset)) and data_file == 'mnist.pkl.gz':
+        import urllib
+        origin = 'http://www.iro.umontreal.ca/~lisa/deep/data/mnist/mnist.pkl.gz'
+        print 'Downloading data from %s' % origin
+        urllib.urlretrieve(origin, dataset)
+
+    print '... loading data'
+
+    # Load the dataset
+    f = gzip.open(dataset, 'rb')
+    train_set, valid_set, test_set = cPickle.load(f)
+    f.close()
+    #train_set, valid_set, test_set format: tuple(input, target)
+    #input is an numpy.ndarray of 2 dimensions (a matrix)
+    #witch row's correspond to an example. target is a
+    #numpy.ndarray of 1 dimensions (vector)) that have the same length as
+    #the number of rows in the input. It should give the target
+    #target to the example with the same index in the input.
+
+    def shared_dataset(data_xy, borrow=True):
+        """ Function that loads the dataset into shared variables
+
+        The reason we store our dataset in shared variables is to allow
+        Theano to copy it into the GPU memory (when code is run on GPU).
+        Since copying data into the GPU is slow, copying a minibatch everytime
+        is needed (the default behaviour if the data is not in a shared
+        variable) would lead to a large decrease in performance.
+        """
+        data_x, data_y = data_xy
+        shared_x = theano.shared(numpy.asarray(data_x,
+                                               dtype=theano.config.floatX),
+                                 borrow=borrow)
+        shared_y = theano.shared(numpy.asarray(data_y,
+                                               dtype=theano.config.floatX),
+                                 borrow=borrow)
+        # When storing data on the GPU it has to be stored as floats
+        # therefore we will store the labels as ``floatX`` as well
+        # (``shared_y`` does exactly that). But during our computations
+        # we need them as ints (we use labels as index, and if they are
+        # floats it doesn't make sense) therefore instead of returning
+        # ``shared_y`` we will have to cast it to int. This little hack
+        # lets ous get around this issue
+        return shared_x, T.cast(shared_y, 'int32')
+
+    test_set_x, test_set_y = shared_dataset(test_set)
+    valid_set_x, valid_set_y = shared_dataset(valid_set)
+    train_set_x, train_set_y = shared_dataset(train_set)
+
+    rval = [(train_set_x, train_set_y), (valid_set_x, valid_set_y),
+            (test_set_x, test_set_y)]
+    return rval
 
 if __name__ == "__main__":
     #### Shared dataset objects ####
 
+
+
     train_set_x, train_set_y, test_set_x, test_set_y = \
-        get_training_test_matrices_expanded(N=60000, generator=generator_simple)
+        get_training_test_matrices_expanded(N=N, generator=generator_simple, add_x_extra=False)
+
+    print train_set_x.shape
+    print test_set_x.shape
+
+    print data_api.ImageSideFinal
+    print data_api.ImageChannels*data_api.ImageSideFinal*data_api.ImageSideFinal
+
+    train_set_x.reshape(train_set_x.shape[0], data_api.ImageChannels, data_api.ImageSideFinal, data_api.ImageSideFinal)
+    test_set_x.reshape(test_set_x.shape[0], data_api.ImageChannels, data_api.ImageSideFinal, data_api.ImageSideFinal)
 
 
 
@@ -47,15 +129,15 @@ if __name__ == "__main__":
 
     # Reshape matrix of rasterized images of shape (batch_size,28*28)
     # to a 4D tensor, compatible with our LeNetConvPoolLayer
-    layer0_input = x.reshape((batch_size,1,28,28))
+    layer0_input = x.reshape((batch_size,int(ImageChannels),int(ImageSideFinal), int(ImageSideFinal)))
 
     # Construct the first convolutional pooling layer:
     # filtering reduces the image size to (28-5+1,28-5+1)=(24,24)
     # maxpooling reduces this further to (24/2,24/2) = (12,12)
     # 4D output tensor is thus of shape (20,20,12,12)
     layer0 = LeNetConvPoolLayer(rng, input=layer0_input,
-            image_shape=(batch_size, 1, 28, 28),
-            filter_shape=(20, 1, 5, 5), poolsize=(2, 2))
+            image_shape=(batch_size, data_api.ImageChannels, data_api.ImageSideFinal, data_api.ImageSideFinal),
+            filter_shape=(20, data_api.ImageChannels, 5, 5), poolsize=(2, 2))
 
     # Construct the second convolutional pooling layer
     # filtering reduces the image size to (12 - 5 + 1, 12 - 5 + 1)=(8, 8)
@@ -73,7 +155,7 @@ if __name__ == "__main__":
     # construct a fully-connected sigmoidal layer
     layer2 = HiddenLayer(rng, input=layer2_input,
                         n_in=50 * 4 * 4, n_out=500,
-                        activation=T.tanh    )
+                        activation=T.tanh)
 
     # classify the values of the fully-connected sigmoidal layer
     layer3 = LogisticRegression(input=layer2.output, n_in=500, n_out=10)
@@ -126,11 +208,7 @@ if __name__ == "__main__":
                 x: train_set_x[index * batch_size: (index + 1) * batch_size],
                 y: train_set_y[index * batch_size: (index + 1) * batch_size]})
 
-    valid_model = theano.function(inputs=[index],
-            outputs=errors,
-            givens={
-                x: valid_set_x[index * batch_size: (index + 1) * batch_size],
-                y: valid_set_y[index * batch_size: (index + 1) * batch_size]})
+
 
     test_model = theano.function(inputs=[index],
             outputs=errors,
@@ -147,7 +225,6 @@ if __name__ == "__main__":
 
     # compute number of minibatches for training, validation and testing
     n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
-    n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
     n_test_batches = test_set_x.get_value(borrow=True).shape[0] / batch_size
 
     print '... training the model'
@@ -180,8 +257,8 @@ if __name__ == "__main__":
 
             if (iter + 1) % validation_frequency == 0:
                 # compute zero-one loss on validation set
-                validation_losses = [valid_model(i)
-                                     for i in xrange(n_valid_batches)]
+                validation_losses = [test_model(i)
+                                     for i in xrange(n_test_batches)]
                 this_validation_loss = numpy.mean(validation_losses)
 
                 print('epoch %i, minibatch %i/%i, validation error %f %%' % \
@@ -217,9 +294,3 @@ if __name__ == "__main__":
                  (best_validation_loss * 100., test_score * 100.))
     print 'The code run for %d epochs, with %f epochs/sec' % (
         epoch, 1. * epoch / (end_time - start_time))
-    print >> sys.stderr, ('The code for file ' +
-                          os.path.split(__file__)[1] +
-                          ' ran for %.1fs' % ((end_time - start_time)))
-    print >> sys.stderr, ('The code for file ' +
-                          os.path.split(__file__)[1] +
-                          ' ran for %.1fs' % ((end_time - start_time)))
