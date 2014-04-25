@@ -85,7 +85,7 @@ public class AsteroidConverter
                     int shift = i*ImageChannels*ImageSide*ImageSide;
                     StringBuilder sb = new StringBuilder();
                     for(int j=0;j<ImageChannels*ImageSide*ImageSide;++j)
-                       sb.append(rawTraining.get(j)+" ");
+                       sb.append(rawTraining.get(j+shift)+" ");
 
                     writer.write(sb.toString());
                     writer.close();
