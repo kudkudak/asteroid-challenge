@@ -21,7 +21,7 @@ Undetected around 10%
 
 Anomaly detector?
 
-10435   896 - exact proportions. Not very good 91% - 9%
+10435   896 - exact proportions. Not very good 92%-8%
 """
 
 def im_translate(img, shift_x, shift_y):

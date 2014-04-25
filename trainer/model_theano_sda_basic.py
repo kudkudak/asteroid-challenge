@@ -28,14 +28,14 @@ batch_size = 100
 
 
 learning_rate = 0.1
-batch_size = 15
+batch_size = 20
 
 
 
-n_epochs = 30
+n_epochs = 100
 L1_reg=0.000
 L2_reg=0.0001
-N=600
+N=100000
 
 # N=20000
 
@@ -69,13 +69,14 @@ def shared_dataset(data_x, data_y, borrow=True):
 if __name__ == "__main__":
     #### Shared dataset objects ####
     train_set_x, train_set_y, test_set_x, test_set_y = \
-        get_training_test_matrices_expanded(train_percentage=1.0, N=N, generator=generator_simple, add_x_extra=True)
+        get_training_test_matrices_expanded(train_percentage=1.0, N=N, generator=default_generator, add_x_extra=True)
 
 
     train_set_x_extra = train_set_x[:, train_set_x.shape[1]-ExtraColumns:]
-    train_set_x = train_set_x[:, 0:train_set_x.shape[1]-ExtraColumns]
+    train_set_x = train_set_x[:, 0:(train_set_x.shape[1]-ExtraColumns)/ImageChannels]
     test_set_x_extra = test_set_x[:, test_set_x.shape[1]-ExtraColumns:]
-    test_set_x = test_set_x[:, 0:test_set_x.shape[1]-ExtraColumns]
+    test_set_x = test_set_x[:, 0:(test_set_x.shape[1]-ExtraColumns)/ImageChannels]
+    ModelImageChannels = 1
 
 
     ### Input and output ####
@@ -93,6 +94,8 @@ if __name__ == "__main__":
     train_set_x, w = shared_dataset(train_set_x, None)
     test_set_x, w = shared_dataset(test_set_x, None)
 
+
+
     ######################
     # BUILDING THE MODEL #
     ######################
@@ -101,14 +104,20 @@ if __name__ == "__main__":
     theano_rng = RandomStreams(rng.randint(2 ** 30))
 
     da = dA(numpy_rng=rng, theano_rng=theano_rng, input=x,
-            n_visible=config.ImageChannels*data_api.ImageSideFinal*data_api.ImageSideFinal,
-            n_hidden=20)
+            n_visible=ModelImageChannels*data_api.ImageSideFinal*data_api.ImageSideFinal,
+            n_hidden=50)
 
-    cost, updates = da.get_cost_updates(corruption_level=0.1,
+    cost, updates = da.get_cost_updates(corruption_level=0.3,
                                 learning_rate=learning_rate)
 
 
     hidden_activ = theano.function([index], da.get_hidden_values(x),
+         givens = {x: train_set_x[index:index+1, :]})
+
+    reconstruct = theano.function([index], da.forward(x),
+         givens = {x: train_set_x[index:index+1, :]})
+
+    get_example_theano = theano.function([index], x,
          givens = {x: train_set_x[index:index+1, :]})
 
     train_da = theano.function([index], cost, updates=updates,
@@ -119,6 +128,8 @@ if __name__ == "__main__":
     ############
     # TRAINING #
     ############
+
+
 
     # go through training epochs
     for epoch in xrange(n_epochs):
@@ -133,16 +144,28 @@ if __name__ == "__main__":
 
 
 
-    ### Show everything
-    from utils import tile_raster_images
-    import matplotlib.pylab as plt
-    plt.imshow(tile_raster_images(X=da.W.get_value(borrow=True).T,
-                 img_shape=(2*data_api.ImageSideFinal, 2*data_api.ImageSideFinal),
-                 tile_shape=(20, 20),
-                 tile_spacing=(1, 1)))
 
-    plt.show()
 
+    ###########
+    # METRICS #
+    ###########
+
+
+    try:
+        ### Visualise weights
+        from utils import tile_raster_images
+        import matplotlib.pylab as plt
+        plt.imshow(tile_raster_images(X=da.W.get_value(borrow=True).T,
+                     img_shape=(max(ModelImageChannels/2,1)*data_api.ImageSideFinal, max(ModelImageChannels/2, 1)*data_api.ImageSideFinal),
+                     tile_shape=(20, 20),
+                     tile_spacing=(1, 1)))
+
+        plt.show()
+    except Exception,e:
+        pass
+
+
+    # Visualise scattering
     N = 60000
     x_plt, y_plt, clr_plt = [0]*N, [0]*N, [0]*N
     for i in xrange(N):
@@ -151,19 +174,25 @@ if __name__ == "__main__":
         y_plt[i] = act[0,1]
         clr_plt[i] = train_set_y[i]
 
-
     f, (ax1, ax2) = plt.subplots(2)
-
-
     ax2.scatter([x_plt[i] for i in xrange(N) if train_set_y[i] == 0], [y_plt[i] for i in xrange(N) if train_set_y[i] == 0], c= [0 for i in xrange(N) if train_set_y[i] == 0])
     ax1.scatter([x_plt[i] for i in xrange(N) if train_set_y[i] == 1], [y_plt[i] for i in xrange(N) if train_set_y[i] == 1], c= [1 for i in xrange(N) if train_set_y[i] == 1])
     plt.show()
 
-    #print da.W.get_value(borrow=True)[0]
-    #print da.W.get_value(borrow=True).T[0].shape
-    #print data_api.ImageSideFinal
-    #plt.imshow(da.W.get_value(borrow=True).T[0].reshape(config.ImageChannels,
-    #                                                    data_api.ImageSideFinal, data_api.ImageSideFinal)[0])
-    #plt.imshow(da.W.get_value(borrow=True).T[0].reshape(config.ImageChannels,
-    #                                                    data_api.ImageSideFinal, data_api.ImageSideFinal)[1])
+    # Visualize reconstruction
+    for i in xrange(10):
+        from visualize import *
+        print ModelImageChannels
+        input_img = get_example_theano(i).reshape(ModelImageChannels, ImageSideFinal, ImageSideFinal)
+        reconstructed_img = reconstruct(i).reshape(ModelImageChannels, ImageSideFinal, ImageSideFinal)
+        print reconstructed_img[0][0:2]
+        print reconstructed_img.shape
+        print input_img.shape
+        if ModelImageChannels > 1:
+            show_4_ex([input_img[0], input_img[1], reconstructed_img[0], reconstructed_img[1]], title=train_set_y[i])
+        else:
+            show_4_ex([input_img[0], input_img[0], reconstructed_img[0], reconstructed_img[0]], title=train_set_y[i])
+    import cPickle
+    cPickle.dump(dA, open("dA.pkl","w"))
+
 

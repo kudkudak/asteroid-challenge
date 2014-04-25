@@ -60,6 +60,7 @@ class LogisticRegression(object):
               the learning rate is less dependent on the batch size
         """
         # Trick with arange to extract correct labels probability
+        #return -T.mean(T.mul(0.08*y + 0.92*(1.0-y), T.log(self.p_y_given_x)[T.arange(y.shape[0]), y])) #cost-sensitive?
         return -T.mean(T.log(self.p_y_given_x)[T.arange(y.shape[0]), y])
 
     def ypred0(self, y):

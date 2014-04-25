@@ -143,25 +143,40 @@ def cached_in_memory(func):
 
     return func_caching
 import pickle
-CacheDirectory = "data_caches"
+from config import DataCache
 import inspect
-def cached_HDD(func):
-    def func_caching(*args, **dict_args):
-        print  #UUGLY HACK
-        key = ''.join([a for a in
-                       str((func.__name__, args, frozenset([x for x in dict_args.values() if str(x).find("0x") == -1])))
-                       if a in "abcdefghijklmnoprstuwyxcz1234567890_qwertyuiopasdfghjklzxcvbnm"])
+def cached_HDD(save_fnc=None, load_fnc=None):
+    """
+    @param save_fnc, load_fnc function(key, returned_value)
+    """
+    def cached_HDD_inner(func):
+        def func_caching(*args, **dict_args):
+            print  #UUGLY HACK
+            key = ''.join([a for a in
+                           str((func.__name__, args, frozenset([x for x in dict_args.values() if str(x).find("0x") == -1])))
+                           if a in "abcdefghijklmnoprstuwyxcz1234567890_qwertyuiopasdfghjklzxcvbnm"])
 
-        #TODO: add logger..
-        print "HDDCACHEMODULE: Checking key ",key
+            #TODO: add logger..
+            print "HDDCACHEMODULE: Checking key ",key
 
-        cache_file = os.path.join(CacheDirectory, "c"+str(key)+".cache.pkl")
-        if os.path.exists(cache_file):
-            print "HDDCACHEMODULE: Loading pickled file"
-            return pickle.load(open(cache_file, "r"))
-        else:
-            returned_value = func(*args, **dict_args)
-            pickle.dump(returned_value, open(cache_file,"w"))
-            return returned_value
+            cache_file = os.path.join(DataCache, "c"+str(key)+".cache.pkl")
+            if os.path.exists(cache_file):
+                print "HDDCACHEMODULE: Loading pickled file"
 
-    return func_caching
+                if load_fnc:
+                    return load_fnc(key)
+
+                return pickle.load(open(cache_file, "r"))
+            else:
+                returned_value = func(*args, **dict_args)
+                if save_fnc:
+                    save_fnc(key, returned_value)
+                else:
+                    pickle.dump(returned_value, open(cache_file,"w"))
+
+
+                return returned_value
+
+        return func_caching
+
+    return cached_HDD_inner

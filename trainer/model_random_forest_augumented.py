@@ -1,3 +1,9 @@
+"""
+Accuracy  0.962533333333 Negative precision  0.592991913747 Precision  0.971905119967
+Accuracy  0.959333333333 Negative precision  0.713253012048 Precision  0.966335275968
+Accuracy  0.962733333333 Negative precision  0.727777777778 Precision  0.971507607192 - diff 8x8
+"""
+
 from sklearn import svm
 import cPickle
 from data_api import *
@@ -9,7 +15,7 @@ from sklearn.ensemble import RandomForestClassifier
 print get_example_memory(0)
 
 print "SVM Test.."
-X_tr, Y_tr, X_tst, Y_st =  get_training_test_matrices_expanded(N=500000, generator=generator_simple)
+X_tr, Y_tr, X_tst, Y_st =  get_training_test_matrices_expanded(N=150000, oversample_negative=True, generator=generator_fast, add_x_extra=True)
 
 print "Training on ", X_tr.shape
 
@@ -40,7 +46,7 @@ def _tp_tn_fp_fn(y_true, y_pred):
 
 #print "PCA ratios: ", pca.explained_variance_ratio_
 
-clf = RandomForestClassifier(n_estimators=14, max_features=128,
+clf = RandomForestClassifier(n_estimators=28, max_features=128,
                              max_depth=None, min_samples_split=1, random_state=0, n_jobs=7, verbose=5)
 
 clf.fit(X_tr, Y_tr)

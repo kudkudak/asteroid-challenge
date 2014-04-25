@@ -164,11 +164,11 @@ def get_example_memory(id):
 import numpy as np
 
 @timed
-@cached_HDD
+@cached_HDD()
 def get_training_test_matrices_bare(train_percentage=0.9, oversample_negative=False, limit_size = 10000000000,
                                     add_x_extra=True, generators=[], feature_gen=[]):
     """ Oversampling is useful if class are imbalanced """
-    assert oversample_negative == False
+
     assert aug_fold_out is not None
 
     if oversample_negative is False:
@@ -184,6 +184,16 @@ def get_training_test_matrices_bare(train_percentage=0.9, oversample_negative=Fa
         for id in train_chunk_ids:
             if id*aug_single_chunk_size >= dataset_size-1: break
             train_ids += range(id*aug_single_chunk_size, min(dataset_size, (id+1)*aug_single_chunk_size))
+
+
+        if oversample_negative:
+            train_ids_negative = np.array([id for id in train_ids if Y_in_memory[id]==0])
+            train_ids_positives = np.array([id for id in train_ids if Y_in_memory[id]==1])
+
+            train_ids_positive_indexes = np.random.choice(len(train_ids_positives), int(0.5*dataset_size*train_percentage), replace=True)
+            train_ids_negative_indexes = np.random.choice(len(train_ids_negative), int(0.5*dataset_size*train_percentage), replace=True)
+
+            train_ids = list(train_ids_positives[train_ids_positive_indexes]) + list(train_ids_negative[train_ids_negative_indexes])
 
         random.shuffle(train_ids)
 
@@ -210,15 +220,15 @@ def get_training_test_matrices_bare(train_percentage=0.9, oversample_negative=Fa
 
 
 @timed
-@cached_HDD
+@cached_HDD()
 def get_training_test_matrices_expanded(train_percentage=0.9, N = 100,
-                                       add_x_extra=True, generator= default_generator, feature_gen=None):
+                                       add_x_extra=True, generator= default_generator,oversample_negative=False,  feature_gen=None):
     """
     Gets expanded dataset
     """
     size_training = int(N*train_percentage)
     size_testing = N - size_training
-    trn_iterator, tst_iterator = get_cycled_training_test_generators_bare(train_percentage=train_percentage,
+    trn_iterator, tst_iterator = get_cycled_training_test_generators_bare(oversample_negative=oversample_negative, train_percentage=train_percentage,
                                                         add_x_extra=add_x_extra,
                                                         generator=generator,
                                                         feature_gen=feature_gen)
@@ -253,71 +263,83 @@ def get_training_test_matrices_expanded(train_percentage=0.9, N = 100,
 def get_cycled_training_test_generators_bare(train_percentage=0.9, oversample_negative=False, limit_size = 10000000000,
                                        add_x_extra=True, generator = default_generator, feature_gen=None):
     """ Oversampling is useful if class are imbalanced """
-    assert oversample_negative == False
+
     assert aug_fold_out is not None
 
-
-    if oversample_negative is False:
-        # Test and train ids without oversampling
-        dataset_size = min(limit_size, rawdataset_size*aug_fold_out)
-        dataset_chunk_number = min(chunks_count, dataset_size//aug_single_chunk_size + 1)
+    # Load into memory
+    get_example_memory(0)
 
 
-        # Chunks share the same fold out in almost all cases - pay attention to that
-        train_chunk_ids = np.random.choice(dataset_chunk_number, int(dataset_chunk_number*train_percentage))
-        train_ids = []
-        for id in train_chunk_ids:
-            if id*aug_single_chunk_size >= dataset_size-1: break
-            train_ids += range(id*aug_single_chunk_size, min(dataset_size, (id+1)*aug_single_chunk_size))
-
-        random.shuffle(train_ids)
+    # Test and train ids without oversampling
+    dataset_size = min(limit_size, rawdataset_size*aug_fold_out)
+    dataset_chunk_number = min(chunks_count, dataset_size//aug_single_chunk_size + 1)
 
 
-        set_of_ids = set(train_ids)
-
-        test_ids = [id for id in xrange(dataset_size) if id not in set_of_ids] if train_percentage < 1.0 else []
-
-
-
-        # Load into memory
-        get_example_memory(0)
-
-        train_generator, test_generator = None, None
+    # Chunks share the same fold out in almost all cases - pay attention to that
+    train_chunk_ids = np.random.choice(dataset_chunk_number, int(dataset_chunk_number*train_percentage))
+    train_ids = []
+    for id in train_chunk_ids:
+        if id*aug_single_chunk_size >= dataset_size-1: break
+        train_ids += range(id*aug_single_chunk_size, min(dataset_size, (id+1)*aug_single_chunk_size))
 
 
-        if add_x_extra:
-            def train_generator():
-                for i in cycle(train_ids):
-                    datum = get_example_memory(i)
-                    added_features = feature_gen(*datum) if feature_gen else []
-                    yield np.hstack(
-                        (generator(datum[0].reshape(4, aug_image_side, aug_image_side)).
-                         reshape(-1), datum[2], added_features)), datum[1]
+    if oversample_negative:
+        train_ids_negative = np.array([id for id in train_ids if Y_in_memory[id]==0])
+        train_ids_positives = np.array([id for id in train_ids if Y_in_memory[id]==1])
 
-            def test_generator():
-                for i in cycle(test_ids):
-                    datum = get_example_memory(i)
-                    added_features = feature_gen(*datum) if feature_gen else []
-                    yield np.hstack((default_generator(datum[0].reshape(4, aug_image_side, aug_image_side)).
-                         reshape(-1), datum[2], added_features)), datum[1]
+        train_ids_positive_indexes = np.random.choice(len(train_ids_positives), int(0.5*dataset_size*train_percentage), replace=True)
+        train_ids_negative_indexes = np.random.choice(len(train_ids_negative), int(0.5*dataset_size*train_percentage), replace=True)
 
-        else:
-            def train_generator():
-                for i in cycle(train_ids):
-                    datum = get_example_memory(i)
-                    added_features = feature_gen(*datum) if feature_gen else []
-                    yield np.hstack(
-                        (generator(datum[0].reshape(4, aug_image_side, aug_image_side)).
-                         reshape(-1), added_features)), datum[1]
+        train_ids = list(train_ids_positives[train_ids_positive_indexes]) + list(train_ids_negative[train_ids_negative_indexes])
 
-            def test_generator():
-                for i in cycle(test_ids):
-                    datum = get_example_memory(i)
-                    added_features = feature_gen(*datum) if feature_gen else []
-                    yield np.hstack((default_generator(datum[0].reshape(4, aug_image_side, aug_image_side)).
-                         reshape(-1), added_features)), datum[1]
+    random.shuffle(train_ids)
 
-        return train_generator(), test_generator()
+    random.shuffle(train_ids)
+
+
+    set_of_ids = set(train_ids)
+
+    test_ids = [id for id in xrange(dataset_size) if id not in set_of_ids] if train_percentage < 1.0 else []
+
+    random.shuffle(test_ids)
+
+
+    train_generator, test_generator = None, None
+
+
+    if add_x_extra:
+        def train_generator():
+            for i in cycle(train_ids):
+                datum = get_example_memory(i)
+                added_features = feature_gen(*datum) if feature_gen else []
+                yield np.hstack(
+                    (generator(datum[0].reshape(4, aug_image_side, aug_image_side)).
+                     reshape(-1), datum[2], added_features)), datum[1]
+
+        def test_generator():
+            for i in cycle(test_ids):
+                datum = get_example_memory(i)
+                added_features = feature_gen(*datum) if feature_gen else []
+                yield np.hstack((default_generator(datum[0].reshape(4, aug_image_side, aug_image_side)).
+                     reshape(-1), datum[2], added_features)), datum[1]
+
+    else:
+        def train_generator():
+            for i in cycle(train_ids):
+                datum = get_example_memory(i)
+                added_features = feature_gen(*datum) if feature_gen else []
+                yield np.hstack(
+                    (generator(datum[0].reshape(4, aug_image_side, aug_image_side)).
+                     reshape(-1), added_features)), datum[1]
+
+        def test_generator():
+            for i in cycle(test_ids):
+                datum = get_example_memory(i)
+                added_features = feature_gen(*datum) if feature_gen else []
+                yield np.hstack((default_generator(datum[0].reshape(4, aug_image_side, aug_image_side)).
+                     reshape(-1), added_features)), datum[1]
+
+    return train_generator(), test_generator()
 
 
 

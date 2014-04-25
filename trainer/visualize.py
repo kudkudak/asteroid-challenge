@@ -35,13 +35,14 @@ def get_img_det(i):
 
     return im1 , det
 
-def show_4_ex(im1, det=None):
+def show_4_ex(im1, det=None, title=None):
     f, ((p1,p2),(p3,p4)) = pl.subplots(2,2)
     im_show = p1.imshow(im1[0], cmap='hot')
     im_show = p2.imshow(im1[1], cmap='hot')
     im_show = p3.imshow(im1[2], cmap='hot')
     im_show = p4.imshow(im1[3], cmap='hot')
     if det: pl.title("Detection "+" result "+det[-1]+ " pixel width "+det[-6])
+    if title: pl.title(title)
     pl.show()
 
 

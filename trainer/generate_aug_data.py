@@ -98,7 +98,7 @@ IT should be around 1-2GB RAM Only
 Make sure that chunk_size is divisible by fold_out and rather do not turn on divide
 """
 def generate_aug(generator, preprocessor, chunk_size, folder=config.DataAugDir, prefix="data_chunk_",
-                 fold_out = 8, divide=False, crop_factor = 2.0
+                 fold_out = 8, divide=False, crop_factor = 2.0, difference=True,
                  ):
     assert chunk_size % fold_out == 0
 
@@ -131,10 +131,17 @@ def generate_aug(generator, preprocessor, chunk_size, folder=config.DataAugDir, 
         im_2_gen = generator(im_list[2], det, preprocessor)
         im_3_gen = generator(im_list[3], det, preprocessor)
 
+        for im0, im1, im2, im3 in zip(im_0_gen, im_1_gen, im_2_gen, im_3_gen):
 
-        if det[-1] == "1" or not divide:
-            # Prepare
-            for im0, im1, im2, im3 in zip(im_0_gen, im_1_gen, im_2_gen, im_3_gen):
+            if difference:
+                im1 -= im0
+                im2 -= im0
+                im3 -= im0
+
+            if det[-1] == "1" or not divide:
+                # Prepare
+
+
                 chunk_positive[chunk_positive_id,0,:,:] = im0
                 chunk_positive[chunk_positive_id,1,:,:] = im1
                 chunk_positive[chunk_positive_id,2,:,:] = im2
@@ -161,9 +168,9 @@ def generate_aug(generator, preprocessor, chunk_size, folder=config.DataAugDir, 
                     chunk_positive_id = 0
                     chunk_positive_dets = []
                     chunk_count += 1
-        else:
-             # Prepare
-            for im0, im1, im2, im3 in zip(im_0_gen, im_1_gen, im_2_gen, im_3_gen): 
+            else:
+                 # Prepare
+
                 chunk_false[chunk_false_id,0,:,:] = im0
                 chunk_false[chunk_false_id,1,:,:] = im1
                 chunk_false[chunk_false_id,2,:,:] = im2
@@ -213,4 +220,4 @@ def generate_aug(generator, preprocessor, chunk_size, folder=config.DataAugDir, 
 
 
 if __name__ == "__main__":
-    generate_aug(generator_crop_flip_8fold, preprocessing_no_gauss_2x, chunk_size=160, crop_factor=2.0)
+    generate_aug(generator_crop_flip_8fold, preprocessing_no_gauss_4x, chunk_size=160, crop_factor=2.0)
