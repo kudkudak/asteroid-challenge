@@ -21,15 +21,15 @@ batch_size = 20
 
 
 
-learning_rate = 0.005
-batch_size = 50
+learning_rate = 0.01
+batch_size = 1000
 
 
 
 n_epochs = 10
 L1_reg=0.000
 L2_reg=0.0001
-N=150000
+N=200000
 
 # N=20000
 
@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
 
     train_set_x, train_set_y, test_set_x, test_set_y = \
-        get_training_test_matrices_expanded(N=N, oversample_negative=True, generator=generator_fast, add_x_extra=True)
+        get_training_test_matrices_expanded(N=N, oversample_negative=True, generator=generator_simple, add_x_extra=True)
 
 
     train_set_x_extra = train_set_x[:, train_set_x.shape[1]-ExtraColumns:]
@@ -89,11 +89,8 @@ if __name__ == "__main__":
 
     train_set_x, train_set_y = shared_dataset(train_set_x, train_set_y)
     test_set_x, test_set_y = shared_dataset(test_set_x, test_set_y)
-
-    if add_extra:
-        train_set_x_extra, w = shared_dataset(train_set_x_extra, None)
-        test_set_x_extra, w = shared_dataset(test_set_x_extra, None)
-
+    train_set_x_extra, w = shared_dataset(train_set_x_extra, None)
+    test_set_x_extra, w = shared_dataset(test_set_x_extra, None)
     print train_set_x.shape
     print test_set_x.shape
 
@@ -132,17 +129,6 @@ if __name__ == "__main__":
             image_shape=(batch_size, data_api.ImageChannels, data_api.ImageSideFinal, data_api.ImageSideFinal),
             filter_shape=(20, data_api.ImageChannels, 5, 5), poolsize=(2, 2))
 
-    # Construct the second convolutional pooling layer
-    # filtering reduces the image size to (12 - 5 + 1, 12 - 5 + 1)=(8, 8)
-    # maxpooling reduces this further to (8/2,8/2) = (4, 4)
-    # 4D output tensor is thus of shape (20,50,4,4)
-    l1ims =  ( data_api.ImageSideFinal - 5 + 1)/2
-    layer1 = LeNetConvPoolLayer(rng, input=layer0.output,
-            image_shape=(batch_size, 20, ( data_api.ImageSideFinal - 5 + 1)/2, ( data_api.ImageSideFinal - 5 + 1)/2),
-            filter_shape=(50, 20, 5, 5), poolsize=(2, 2))
-
-
-
 
 
 
@@ -156,11 +142,11 @@ if __name__ == "__main__":
         # the HiddenLayer being fully-connected, it operates on 2D matrices of
         # shape (batch_size,num_pixels) (i.e matrix of rasterized images).
         # This will generate a matrix of shape (20, 32 * 4 * 4) = (20, 512)
-        layer2_input = layer1.output.flatten(2)
+        layer2_input = layer0.output.flatten(2)
 
         # construct a fully-connected sigmoidal layer
         layer2 = HiddenLayer(rng, input=layer2_input,
-                            n_in=50 * ((l1ims-4)/2)**2, n_out=500,
+                            n_in=50 * ((data_api.ImageSideFinal-4)/2)**2, n_out=500,
                             activation=T.tanh)
 
         # classify the values of the fully-connected sigmoidal layer
@@ -172,17 +158,17 @@ if __name__ == "__main__":
         # the HiddenLayer being fully-connected, it operates on 2D matrices of
         # shape (batch_size,num_pixels) (i.e matrix of rasterized images).
         # This will generate a matrix of shape (20, 32 * 4 * 4) = (20, 512)
-        layer2_input = T.horizontal_stack(layer1.output.flatten(2), x_extra)
+        layer2_input = T.horizontal_stack(layer0.output.flatten(2), x_extra)
 
         # construct a fully-connected sigmoidal layer
         layer2 = HiddenLayer(rng, input=layer2_input,
-                            n_in=50 * ((l1ims-4)/2)**2 + ExtraColumns, n_out=500,
+                            n_in=20 * ((data_api.ImageSideFinal-4)/2)**2 + ExtraColumns, n_out=500,
                             activation=T.tanh)
 
         # classify the values of the fully-connected sigmoidal layer
         layer3 = LogisticRegression(input=layer2.output, n_in=500, n_out=2)
 
-    model = [layer0, layer1, layer2, layer3]
+    model = [layer0, layer2, layer3]
 
     # the cost we minimize during training is the negative log likelihood of
     # the model plus the regularization terms (L1 and L2); cost is expressed
@@ -196,7 +182,7 @@ if __name__ == "__main__":
     # error - again: compile EXPRESSION (not function)
     precision = layer3.precision(y)
     # create a list of all model parameters to be fit by gradient descent
-    params = layer3.params + layer2.params + layer1.params + layer0.params
+    params = layer3.params + layer2.params + layer0.params
 
     # compute the gradient of cost with respect to theta (stored in params)
     # the resulting gradients will be stored in a list gparams

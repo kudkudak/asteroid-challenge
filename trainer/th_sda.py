@@ -139,6 +139,13 @@ class dA(object):
        """
        return  self.theano_rng.binomial(size=input.shape, n=1, p=1 - corruption_level) * input
 
+   def forward(self, input):
+       return self.get_reconstructed_input(self.get_hidden_values(input))
+
+   def get_hidden_values(self, input):
+       """ Computes the values of the hidden layer """
+       return T.nnet.sigmoid(T.dot(input, self.W) + self.b)
+
 
    def get_hidden_values(self, input):
        """ Computes the values of the hidden layer """
