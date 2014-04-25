@@ -13,6 +13,7 @@ from config import *
 
 
 
+
 #####  Low level API #####
 
 def load_img_det(i):
@@ -123,8 +124,8 @@ def get_example_memory(id):
         dataset_in_memory = True
 
         # Create in-memory objects
-        X_extra_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ExtraColumns), dtype="float32")
-        X_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ImageChannels * aug_image_side**2), dtype="float32")
+        X_extra_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ExtraColumns), dtype="float64")
+        X_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ImageChannels * aug_image_side**2), dtype="float64")
         Y_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ), dtype=int)
 
 
@@ -225,7 +226,8 @@ def get_training_test_matrices_expanded(train_percentage=0.9, N = 100,
 
     # Fetch dynamically dimensions
     check_dim_example, check_dim_answer = next(trn_iterator)
-    next(tst_iterator)
+    if train_percentage < 1.0:
+        next(tst_iterator)
 
     X_train = np.empty(shape=(size_training, check_dim_example.shape[0]))
     X_test = np.empty(shape=(size_testing, check_dim_example.shape[0]))
@@ -237,6 +239,7 @@ def get_training_test_matrices_expanded(train_percentage=0.9, N = 100,
         X_train[id, :] = ex
         Y_train[id] = label
         if id>=size_training-1: break
+
     print "Filling in testing dataset"
     for id, (ex, label) in enumerate(tst_iterator):
         X_test[id, :] = ex
@@ -272,7 +275,9 @@ def get_cycled_training_test_generators_bare(train_percentage=0.9, oversample_ne
 
         set_of_ids = set(train_ids)
 
-        test_ids = [id for id in xrange(dataset_size) if id not in set_of_ids]
+        test_ids = [id for id in xrange(dataset_size) if id not in set_of_ids] if train_percentage < 1.0 else []
+
+
 
         # Load into memory
         get_example_memory(0)

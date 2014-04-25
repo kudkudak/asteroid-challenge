@@ -7,6 +7,7 @@ import time
 from theano.ifelse import ifelse
 
 
+
 class LogisticRegression(object):
 
     def __init__(self, input, n_in, n_out):

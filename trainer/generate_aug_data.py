@@ -50,6 +50,10 @@ def preprocessing_no_gauss_3x(img, det):
     return im_crop(img / config.MaximumPixelIntensity,
                    3.0)
 
+def preprocessing_no_gauss_4x(img, det):
+    return im_crop(img / config.MaximumPixelIntensity,
+                   4.0)
+
 def preprocessing_gauss_eq(img, det):
     return im_crop(exposure.equalize_hist(ndimage.gaussian_filter(img, sigma=1.1)),
                    4.0)

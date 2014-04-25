@@ -1,33 +1,15 @@
-from sklearn import svm
-import cPickle
-from data_api import *
+import matplotlib.pylab as plt
 
-print "Number of chunks ", chunks_count
-print get_chunk(0)[0][0]
-print chunks_positive_ids
-print chunks_negative_ids
+N=10.
+x_plt, y_plt, clr_plt = [0]*int(N), [0]*int(N), [0]*int(N)
+for i in xrange(int(N)):
+    act = [i/N,  i/N]
+    x_plt[i] = act[0]
+    y_plt[i] = act[1]
+    clr_plt[i] = i % 2 + 10
 
-from visualize import *
+print x_plt
+print y_plt
 
-
-show_4_ex(get_chunk(0)[0][0], get_chunk(0)[1][0])
-
-
-#print "Generating"
-#trn, tst = get_training_test_generators_bare(limit_size=1000)
-#print "Generated"
-#
-#for ex, y, det in trn:
-#    print ex, y
-
-
-print "SVM Test.."
-X_tr, Y_tr, X_tst, Y_st = get_training_test_matrices_bare()
-print "Training on ", X_tr.shape
-wclf = svm.SVC(kernel='linear', class_weight={0: 7}, max_iter=3000 )
-m = wclf.fit(X_tr, Y_tr)
-print "Scoring.."
-print "Accuracy ", m.score(X_tst, Y_st)
-
-print "Dumping to file "
-cPickle.dump(wclf, open("trained_svm.pkl","w"))
+plt.scatter(x_plt, y_plt,s=90, c=clr_plt)
+plt.show()

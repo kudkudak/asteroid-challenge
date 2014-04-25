@@ -10,6 +10,7 @@ MaximumPixelIntensity = 65535.0
 
 #### Simple calculations
 rawdataset_files = [os.path.join("data", f) for f in next(os.walk("data"))[2] if f.endswith(".raw")]
+rawdataset_files = rawdataset_files[0:4000]
 rawdataset_size = len(rawdataset_files)
 
 
