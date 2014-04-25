@@ -148,15 +148,15 @@ if __name__ == "__main__":
     from data_api import get_example
     from visualize import *
     aug = build_augmentation_transform(zoom=1.4, rotation=210, shear=2.2)#random_perturbation_transform(**default_augmentation_params)
-    im, det = get_example(40)
+    im, det = get_example(200)
     im1 = im.reshape(ImageChannels, aug_image_side, aug_image_side)[0]
     im1_transformed = skimage.transform.warp(im1, aug, output_shape=(im1.shape[0]/2, im1.shape[1]/2), mode='reflect')
     im1_transformed2 = im_crop(skimage.transform.warp(im1, aug, output_shape=(im1.shape[0], im1.shape[1]), mode='reflect'),2.0)
     show_4_ex([im1, im1, im1_transformed, im1_transformed2], det )
 
     # Test differences
-    # im = [i for i in im.reshape(4,aug_image_side,aug_image_side)]
-    # show_4_ex([im[0], im[1]-im[0], im[2]-im[0], im[3]-im[0]], det )
+    im = [i for i in im.reshape(4,aug_image_side,aug_image_side)]
+    show_4_ex([im[0], im[1]-im[0], im[2]-im[0], im[3]-im[0]], det )
 
 
     import time

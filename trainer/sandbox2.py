@@ -14,7 +14,7 @@ trn, tst = get_cycled_training_test_generators_bare(generator=generator_simple)
 
 from itertools import islice
 
-for ex, label in islice(trn, 1):
+for ex, label in islice(trn, 10):
     print ex.shape
     plt.title(str(label))
     plt.imshow(ex[0:4*(aug_image_side//CROP_FACTOR)**2].reshape(4,aug_image_side//CROP_FACTOR,aug_image_side//CROP_FACTOR)[0], cmap='hot')
