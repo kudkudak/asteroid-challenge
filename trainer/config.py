@@ -5,7 +5,7 @@ DataAugDir = "/data/data_aug_final_16"
 ImageChannels = int(4)
 ImageSide = int(64)
 ExtraColumns = 1+1+1+1+1+1 # Magnitu + FWHM+ Theta + Elong + RMSE + Deltamu
-MaximumPixelIntensity = 65535.0
+MaximumPixelIntensity = 256.0 # Converted to log scale was 65553
 
 DataCache = "/data/data_caches" # RAM Memory HA :)
 

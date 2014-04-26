@@ -31,8 +31,8 @@ N = 200000
 train_set_x, train_set_y, test_set_x, test_set_y = \
     get_training_test_matrices_expanded(N=N, oversample_negative=True, generator=generator_fast, add_x_extra=True)
 
-train_set_x *= 10000
-test_set_x *= 10000
+train_set_x[:, 0:train_set_x.shape[1] - ExtraColumns] *= 255.0
+test_set_x[:, 0:test_set_x.shape[1] - ExtraColumns] *= 255.0
 
 print train_set_x[0]
 
@@ -51,8 +51,8 @@ e = theanets.Experiment(
     # hidden_dropouts=0.1,
     # input_dropouts=0.1,
     weight_l1 = 0.01,
-    layers=(train_set_x.shape[1], train_set_x.shape[1]*2, 32, 2),
-    train_batches=100
+    layers=(train_set_x.shape[1], train_set_x.shape[1]*2, 2),
+    train_batches=20
 )
 e.run((train_set_x, train_set_y.astype("int32")), (test_set_x, test_set_y.astype("int32")))
 

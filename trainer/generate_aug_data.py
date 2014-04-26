@@ -65,7 +65,8 @@ def preprocessing_gauss_eq_leave_2x(img, det):
     return im_crop(exposure.equalize_hist(ndimage.gaussian_filter(img, sigma=1.1)),
                    3.0)
 
-
+def affine_add(img):
+    return img + 0.3
 
 def generator_crop_flip_8fold(img, det,  preprocessor=preprocessing_gauss_eq):
     # Preprocess image

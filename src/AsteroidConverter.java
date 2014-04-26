@@ -10,6 +10,7 @@ public class AsteroidConverter
     static String trainFile = null;
     static String testFile = null;
     static String folder = "";
+    static boolean convert_log=true;
 
     public static void printMessage(String s) {
         if (debug) {
@@ -31,6 +32,53 @@ public class AsteroidConverter
             raw.add(v);
         }
      //   printMessage(filename + " loaded. Size = " + raw.size());
+    }
+
+    public void convertLog(ArrayList<Integer> raw, int offset, ArrayList<Double> out) throws Exception
+    {
+           int W = (64+10)*4-10;
+           for (int i=0;i<4;i++)
+            {
+                int off = offset + i*64*64;
+                int imin = 1<<20;
+                int imax = -imin;
+                // Find min and max
+                for (int j=0;j<4096;j++)
+                {
+                    int r = raw.get(j+off);
+                    if (r>65500) continue;
+                    imin = Math.min(imin, r);
+                    imax = Math.max(imax, r);
+                }
+                double dmax = (double)(imax) / 256.0;
+                double dmin = (double)(imin) / 256.0;
+                if (dmax*0.5-dmin > 10)
+                {
+                    dmax *= 0.5;
+                }
+                if (dmax-dmin<0.0001) dmax += 0.1;
+
+                double linearF = 255.0 / (dmax - dmin);
+                double log10 = Math.log(10.0);
+                double logF = 255.0 / (Math.log(255.0) / log10);
+                for (int y=0;y<64;y++)
+                for (int x=0;x<64;x++)
+                {
+                    double ival = (double)raw.get(off++);
+                    double dval = (double)(ival) / 256.0;
+                    if (dval<dmin) ival = 0;
+                    else if (dval>dmax) ival = 255;
+                    else
+                    {
+                        dval = Math.max(0.0, Math.min(dval-dmin, dmax - dmin));
+                        double d = ((Math.log(dval * linearF)) / log10) * logF;
+                        ival = d;
+                    }
+                    if (ival<0) ival = 0;
+                    if (ival>255) ival = 255;
+                    out.add(ival);
+                }
+            }
     }
 
     public void writeDataset() throws Exception {
@@ -86,8 +134,16 @@ public class AsteroidConverter
                     PrintWriter writer = new PrintWriter(file);
                     int shift = i*ImageChannels*ImageSide*ImageSide;
                     StringBuilder sb = new StringBuilder();
-                    for(int j=0;j<ImageChannels*ImageSide*ImageSide;++j)
-                       sb.append(rawTraining.get(j+shift)+" ");
+                    if(convert_log==true){
+                        ArrayList<Double> out = new ArrayList<Double>();
+                        convertLog(rawTraining, shift, out);
+                        for(int j=0;j<ImageChannels*ImageSide*ImageSide;++j)
+                            sb.append(out.get(j)+" ");
+                    }
+                    else{
+                        for(int j=0;j<ImageChannels*ImageSide*ImageSide;++j)
+                            sb.append(rawTraining.get(j+shift)+" ");
+                    }
 
                     writer.write(sb.toString());
                     writer.close();

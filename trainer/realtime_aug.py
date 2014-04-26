@@ -38,7 +38,7 @@ except Exception, e:
 default_augmentation_params = {
     'zoom_range': (0.95, 1.05),
     'rotation_range': (0, 360.0),
-    "shear_range":(0.01,0.04),
+    "shear_range":(0.01,0.09),
     "translation_range":(0,0)
 }
 

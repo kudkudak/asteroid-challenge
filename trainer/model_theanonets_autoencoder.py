@@ -1,6 +1,6 @@
 MODEL_NAME="learned_denoising_autoencoder_image.pkl"
 AddExtra = False
-
+Visualise = False
 #!/usr/bin/env python
 
 import matplotlib.pyplot as plt
@@ -67,8 +67,8 @@ if not os.path.exists(MODEL_NAME):
     e = theanets.Experiment(
         theanets.Autoencoder,
         layers=(train_set_x.shape[1], 64, 16, 64, train_set_x.shape[1]),
-        num_updates=30,
-        input_noise=0.1,
+        num_updates=400,
+        input_noise=0.3,
         train_batches=1000,
         tied_weights=True,
     )
@@ -82,24 +82,28 @@ else:
     import pickle
     e = pickle.load(open(MODEL_NAME, "r"))
 
-plot_layers(e.network.weights, tied_weights=True)
-plt.tight_layout()
-plt.show()
+if Visualise:
 
-test_set_x = test_set_x[:ImageSideFinal**2]
-plot_images(test_set_x, 121, 'Sample data')
-predicted = e.network.predict(test_set_x)
-plot_images(predicted, 122, 'Reconstructed data')
-plt.tight_layout()
-from visualize import *
-plt.show()
-import numpy as np
-for id, (im, im_pred) in enumerate(zip(test_set_x, predicted)):
-    #plt.imshow(np.hstack((im.reshape(ImageChannels, ImageSideFinal, ImageSideFinal)[0], im_pred.reshape(ImageChannels, ImageSideFinal, ImageSideFinal)[0])), cmap='hot')
-    im0=im.reshape(ImageChannels, ImageSideFinal, ImageSideFinal)[0]
-    im1=im_pred.reshape(ImageChannels, ImageSideFinal, ImageSideFinal)[0]
-    show_4_ex([im0,im1,im0,im1], title=str(test_set_y[id]))
-    plt.show() 
+    plot_layers(e.network.weights, tied_weights=True)
+    plt.tight_layout()
+    plt.show()
+
+    test_set_x = test_set_x[:ImageSideFinal**2]
+    plot_images(test_set_x, 121, 'Sample data')
+    predicted = e.network.predict(test_set_x)
+    plot_images(predicted, 122, 'Reconstructed data')
+    plt.tight_layout()
+    from visualize import *
+    plt.show()
+    import numpy as np
+
+
+    for id, (im, im_pred) in enumerate(zip(test_set_x, predicted)):
+        #plt.imshow(np.hstack((im.reshape(ImageChannels, ImageSideFinal, ImageSideFinal)[0], im_pred.reshape(ImageChannels, ImageSideFinal, ImageSideFinal)[0])), cmap='hot')
+        im0=im.reshape(ImageChannels, ImageSideFinal, ImageSideFinal)[0]
+        im1=im_pred.reshape(ImageChannels, ImageSideFinal, ImageSideFinal)[0]
+        show_4_ex([im0,im1,im0,im1], title=str(test_set_y[id]))
+        plt.show() 
 
 
 if not os.path.exists(MODEL_NAME):
