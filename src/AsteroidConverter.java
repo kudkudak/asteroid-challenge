@@ -80,7 +80,7 @@ public class AsteroidConverter
                 int n = rawTraining.size()/(ImageChannels*ImageSide*ImageSide);
                 for(int i=0;i<n;++i){
                     file_counter += 1;
-                    File file = new File("pydata/"+file_counter+"_img.raw");
+                    File file = new File("trainer/data/"+file_counter+"_img.raw");
                     PrintWriter writer = new PrintWriter(file);
                     int shift = i*ImageChannels*ImageSide*ImageSide;
                     StringBuilder sb = new StringBuilder();
@@ -90,7 +90,7 @@ public class AsteroidConverter
                     writer.write(sb.toString());
                     writer.close();
 
-                    file = new File("pydata/"+file_counter+".det");
+                    file = new File("trainer/data/"+file_counter+".det");
                     writer = new PrintWriter(file);
                     writer.write(detTraining.get(i));
                     //writer.write(detTraining.stream().collect(Collectors.joining(" ")));
