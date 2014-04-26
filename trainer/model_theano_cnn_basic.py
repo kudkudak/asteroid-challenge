@@ -31,7 +31,7 @@ L1_reg=0.000
 L2_reg=0.0001
 N=150000
 
-# N=20000
+N=200000
 
 add_extra = True
 
@@ -264,6 +264,27 @@ if __name__ == "__main__":
                     x: test_set_x[index * batch_size: (index + 1) * batch_size],
                     x_extra: test_set_x_extra[index * batch_size: (index + 1) * batch_size],
                     y: test_set_y[index * batch_size: (index + 1) * batch_size]})
+
+
+    get_example_th = theano.function(inputs=[index],
+                outputs=x,
+                givens={
+                    x: train_set_x[index:index+1]})
+
+
+
+    print get_example_th(0)
+
+    print type(get_example_th(1))
+
+    print get_example_th(2)[0]
+
+    from visualize import *
+
+    print get_example_th(0)[0].shape
+
+    show_4_ex(get_example_th(0)[0].reshape(ImageChannels, ImageSideFinal, ImageSideFinal))
+
 
 
     #############

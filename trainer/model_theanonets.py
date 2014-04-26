@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+MODEL_NAME = "theanonets_feedforward.pkl"
+DEBUG = 1
 
 import matplotlib.pyplot as plt
 import theano
@@ -21,8 +23,10 @@ import matplotlib.pyplot as plt
 import theanets
 from theanonet_utils import load_mnist, plot_layers
 
+if DEBUG >= 1:
+    print "Theano configured for ",theano.config.floatX
 
-N = 500000
+N = 200000
 
 train_set_x, train_set_y, test_set_x, test_set_y = \
     get_training_test_matrices_expanded(N=N, oversample_negative=True, generator=generator_fast, add_x_extra=True)
@@ -38,10 +42,11 @@ K = 16
 
 e = theanets.Experiment(
     theanets.Classifier,
-    activation="relu",
+    activation = "tanh",
     # hidden_dropouts=0.1,
     # input_dropouts=0.1,
-    layers=(train_set_x.shape[1], K * K, K,  2),
+    weight_l1 = 0.01,
+    layers=(train_set_x.shape[1], train_set_x.shape[1]*2, 32, 2),
     train_batches=100
 )
 e.run((train_set_x, train_set_y.astype("int32")), (test_set_x, test_set_y.astype("int32")))

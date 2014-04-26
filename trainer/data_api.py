@@ -13,7 +13,6 @@ from config import *
 
 
 
-
 #####  Low level API #####
 
 def load_img_det(i):
@@ -239,10 +238,10 @@ def get_training_test_matrices_expanded(train_percentage=0.9, N = 100,
     if train_percentage < 1.0:
         next(tst_iterator)
 
-    X_train = np.empty(shape=(size_training, check_dim_example.shape[0]))
-    X_test = np.empty(shape=(size_testing, check_dim_example.shape[0]))
-    Y_train = np.empty(shape=(size_training,))
-    Y_test = np.empty(shape=(size_testing,))
+    X_train = np.empty(shape=(size_training, check_dim_example.shape[0]), dtype="float64")
+    X_test = np.empty(shape=(size_testing, check_dim_example.shape[0]), dtype="float64")
+    Y_train = np.empty(shape=(size_training,), dtype="float64")
+    Y_test = np.empty(shape=(size_testing,), dtype="float64")
 
     print "Filling in training dataset"
     for id, (ex, label) in enumerate(trn_iterator):
