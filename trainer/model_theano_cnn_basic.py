@@ -21,8 +21,8 @@ batch_size = 20
 
 
 
-learning_rate = 0.005
-batch_size = 50
+learning_rate = 0.01
+batch_size = 100
 
 
 
@@ -67,6 +67,7 @@ if __name__ == "__main__":
     train_set_x, train_set_y, test_set_x, test_set_y = \
         get_training_test_matrices_expanded(N=N, oversample_negative=True, generator=generator_fast, add_x_extra=True)
 
+    print train_set_x[0]
 
     train_set_x_extra = train_set_x[:, train_set_x.shape[1]-ExtraColumns:]
     train_set_x = train_set_x[:, 0:train_set_x.shape[1]-ExtraColumns]

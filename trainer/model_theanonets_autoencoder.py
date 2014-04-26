@@ -1,3 +1,19 @@
+"""
+Parameters achieving anything
+        e = theanets.Experiment(
+            theanets.Autoencoder,
+            layers=(train_set_x.shape[1], 64, 16, 64, train_set_x.shape[1]),
+            num_updates=50,
+            input_noise=0.2,
+            train_batches=100,
+            tied_weights=True,
+        )
+
+Fixed log scale:
+
+
+"""
+
 MODEL_NAME="learned_denoising_autoencoder_image.pkl"
 AddExtra = False
 Visualise = False
@@ -32,8 +48,6 @@ train_set_x, train_set_y, test_set_x, test_set_y = \
 
 
 
-train_set_x *= 255.0
-test_set_x *= 255.0
 
 print "Example image ", train_set_x[0]
 
@@ -67,9 +81,9 @@ if not os.path.exists(MODEL_NAME):
     e = theanets.Experiment(
         theanets.Autoencoder,
         layers=(train_set_x.shape[1], 64, 16, 64, train_set_x.shape[1]),
-        num_updates=400,
-        input_noise=0.3,
-        train_batches=1000,
+        num_updates=100,
+        input_noise=0.2,
+        train_batches=100,
         tied_weights=True,
     )
     e.run(train_set_x, test_set_x)
