@@ -43,6 +43,8 @@ public class AsteroidConverter
         int file_counter = 0;
         for (File child : directoryListing)
         {
+                printMessage("Considering next file");
+
                 String filename = child.getAbsolutePath();
                 String basename = filename.substring(0, filename.lastIndexOf('.')),
                         extension = filename.substring(filename.lastIndexOf('.') + 1);

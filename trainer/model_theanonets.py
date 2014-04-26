@@ -31,6 +31,11 @@ N = 200000
 train_set_x, train_set_y, test_set_x, test_set_y = \
     get_training_test_matrices_expanded(N=N, oversample_negative=True, generator=generator_fast, add_x_extra=True)
 
+train_set_x *= 10000
+test_set_x *= 10000
+
+print train_set_x[0]
+
 #
 # train_set_x_extra = train_set_x[:, train_set_x.shape[1]-ExtraColumns:]
 # train_set_x = train_set_x[:, 0:train_set_x.shape[1]-ExtraColumns]

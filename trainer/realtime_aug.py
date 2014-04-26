@@ -36,10 +36,10 @@ except Exception, e:
 
 # Augument this much
 default_augmentation_params = {
-    'zoom_range': (0.9, 1.1),
-    'rotation_range': (0, 360),
-    "shear_range":(0.01,0.2),
-    "translation_range":(-1,1)
+    'zoom_range': (0.95, 1.05),
+    'rotation_range': (0, 360.0),
+    "shear_range":(0.01,0.04),
+    "translation_range":(0,0)
 }
 
 
@@ -93,7 +93,7 @@ def generator_fast(img):
     tf = random_perturbation_transform(**default_augmentation_params)
     res = np.empty(shape=(ImageChannels, aug_image_side//CROP_FACTOR, aug_image_side//CROP_FACTOR))
     for i in xrange(4):
-        res[i,:,:] = im_crop(fast_warp(img[i,:,:],tf), CROP_FACTOR)
+        res[i,:,:] = im_crop(fast_warp(img[i,:,:]+0.5,tf), CROP_FACTOR)
     return res
 
 def fast_warp(img, tf, mode='reflect'):
@@ -147,12 +147,14 @@ if __name__ == "__main__":
 
     from data_api import get_example
     from visualize import *
-    aug = build_augmentation_transform(zoom=1.4, rotation=210, shear=2.2)#random_perturbation_transform(**default_augmentation_params)
-    im, det = get_example(200)
-    im1 = im.reshape(ImageChannels, aug_image_side, aug_image_side)[0]
-    im1_transformed = skimage.transform.warp(im1, aug, output_shape=(im1.shape[0]/2, im1.shape[1]/2), mode='reflect')
-    im1_transformed2 = im_crop(skimage.transform.warp(im1, aug, output_shape=(im1.shape[0], im1.shape[1]), mode='reflect'),2.0)
-    show_4_ex([im1, im1, im1_transformed, im1_transformed2], det )
+    aug = build_augmentation_transform(zoom=1.1, rotation=210, shear=0.1)#random_perturbation_transform(**default_augmentation_params)
+    import numpy as np
+    for i in xrange(300,1000):
+        im, det = get_example(i)
+        im1 = im.reshape(ImageChannels, aug_image_side, aug_image_side)[0]
+        im1_transformed = skimage.transform.warp(im1, aug, output_shape=(im1.shape[0], im1.shape[1]), mode='reflect')
+        im1_transformed2 = skimage.transform.warp(im1, aug, output_shape=(im1.shape[0], im1.shape[1]), mode='reflect')
+        show_4_ex([im1, im1, im1_transformed, im1_transformed2], det )
 
     # Test differences
     im = [i for i in im.reshape(4,aug_image_side,aug_image_side)]
