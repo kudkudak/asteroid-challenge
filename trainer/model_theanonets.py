@@ -22,7 +22,7 @@ import theanets
 from theanonet_utils import load_mnist, plot_layers
 
 
-N = 170000
+N = 500000
 
 train_set_x, train_set_y, test_set_x, test_set_y = \
     get_training_test_matrices_expanded(N=N, oversample_negative=True, generator=generator_fast, add_x_extra=True)

@@ -98,7 +98,7 @@ IT should be around 1-2GB RAM Only
 Make sure that chunk_size is divisible by fold_out and rather do not turn on divide
 """
 def generate_aug(generator, preprocessor, chunk_size, folder=config.DataAugDir, prefix="data_chunk_",
-                 fold_out = 8, divide=False, crop_factor = 2.0, difference=True,
+                 fold_out = 8, divide=False, crop_factor = 2.0, difference=False,
                  ):
     assert chunk_size % fold_out == 0
 
@@ -220,4 +220,5 @@ def generate_aug(generator, preprocessor, chunk_size, folder=config.DataAugDir, 
 
 
 if __name__ == "__main__":
-    generate_aug(generator_crop_flip_8fold, preprocessing_no_gauss_4x, chunk_size=160, crop_factor=2.0)
+
+    generate_aug(generator_crop_flip_8fold, preprocessing_no_gauss_4x, chunk_size=160, crop_factor=2.0, difference=True)
