@@ -1,4 +1,4 @@
-MODEL_NAME="model_pca.pkl"
+MODEL_NAME="model_kmeans_pca.pkl"
 N=200000
 Visualise=True
 from sklearn import svm
@@ -9,6 +9,7 @@ from sklearn import linear_model
 from sklearn.decomposition import RandomizedPCA
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.decomposition import FastICA
+from sklearn.cluster import KMeans
 
 train_set_x, train_set_y, test_set_x, test_set_y = \
     get_training_test_matrices_expanded(N=N, oversample_negative=True, generator=generator_fast, add_x_extra=True)
@@ -22,7 +23,10 @@ X_tr, Y_tr, X_tst, Y_st = train_set_x, train_set_y, test_set_x, test_set_y
 
 import os
 
-pca = RandomizedPCA(n_components=10)
+X_white = pca.fit_transform(X)
+
+pca = RandomizedPCA(n_components=10, whitten=True)
+kmeans = KMeans(k=49, n_init=1)
 if not os.path.exists(MODEL_NAME):
 
     print "Training on ", train_set_x.shape
@@ -32,13 +36,25 @@ if not os.path.exists(MODEL_NAME):
     X_tst = pca.transform(X_tst)
 
     print "Fitted PCA"
-
+    # Train KMeans on whitened data
+    print "Transforming data"
+    X_tr_white = pca.fit_transform(X_tr)
+    print "Fitting KMEANS"
+    kmeans.fit(X_tr_white)
+    filters_kmeans = pca.inverse_transform(kmeans.cluster_centers_)
 else:
-    pca = cPickle.load(open(MODEL_NAME, "r"))
+    pca, kmeans = cPickle.load(open(MODEL_NAME, "r"))
 
 import matplotlib.pylab as plt
 
 if Visualise:
+    for i, f in enumerate(F):
+        plt.subplot(7, 7, i + 1)
+        plt.imshow(f.reshape(ImageSideFinal, ImageSideFinal), cmap="gray")
+        plt.axis("off")
+        plt.show()
+
+
     N=min(1000, test_set_x.shape[0])
     x_plt, y_plt, clr_plt = [0]*int(N), [0]*int(N), [0]*int(N)
     for i in xrange(int(N)):
@@ -55,4 +71,4 @@ if Visualise:
 
 if not os.path.exists(MODEL_NAME):
     import cPickle
-    cPickle.dump(pca, open(MODEL_NAME,"w"))
+    cPickle.dump((pca,kmeans), open(MODEL_NAME,"w"))

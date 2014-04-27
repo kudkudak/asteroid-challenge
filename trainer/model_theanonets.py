@@ -42,15 +42,15 @@ print train_set_x[0]
 
 
 e = theanets.Experiment(
-    theanets.Classifier,
+    theanets.Regressor,
     activation = "tanh",
     # hidden_dropouts=0.1,
     # input_dropouts=0.1,
     weight_l1 = 0.001,
-    layers=(train_set_x.shape[1], train_set_x.shape[1]*2, 10, 2),
+    layers=(train_set_x.shape[1], train_set_x.shape[1]*2, 10, 1),
     train_batches=1000
 )
-e.run((train_set_x, train_set_y.astype("int32")), (test_set_x, test_set_y.astype("int32")))
+e.run((train_set_x, train_set_y.astype("int32").reshape(-1,1)), (test_set_x, test_set_y.astype("int32").reshape(-1,1)))
 
 print e.network.predict(test_set_x[0]), test_set_y[0]
 print e.network.predict(test_set_x[1]), test_set_y[1]
