@@ -19,6 +19,10 @@ ccuracy  0.9467 Negative precision  0.857142857143 Precision  0.947046127591 i -
 MODEL_NAME="rf.pkl"
 N=200000
 
+UsePCAKmeans = True
+PCAKmeansModel = "model_kmeans_pca.pkl"
+
+
 from sklearn import svm
 import cPickle
 from data_api import *
@@ -36,16 +40,15 @@ train_set_x, train_set_y, test_set_x, test_set_y = \
 
 print "Training on ", train_set_x.shape
 
-"""
-print "Fitting PCA"
 
-pca = RandomizedPCA(n_components=5)
-X_tr = pca.fit_transform(X_tr)
-X_tst = pca.transform(X_tst)
+if UsePCAKmeans: 
+    print "Loading PCA"
+    pca, kmeans = cPickle.load(open(PCAKmeansModel, "r"))
+    print "Transforming train"
+    X_tr = kmeans.transform(X_tr)
+    print "Transforming test"
+    X_tst = kmeans.transform(X_tst)
 
-import cPickle
-cPickle.dump(pca, open("trained_pca.pkl","w"))
-"""
 
 X_tr, Y_tr, X_tst, Y_st = train_set_x, train_set_y, test_set_x, test_set_y
 
@@ -66,7 +69,7 @@ def _tp_tn_fp_fn(y_true, y_pred):
 
 #print "PCA ratios: ", pca.explained_variance_ratio_
 
-clf = RandomForestClassifier(n_estimators=56, max_features=64, 
+clf = RandomForestClassifier(n_estimators=7, max_features=64, 
                              max_depth=None, min_samples_split=1, random_state=0, n_jobs=7, verbose=5)
 
 clf.fit(X_tr, Y_tr)
