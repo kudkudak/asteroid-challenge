@@ -42,12 +42,14 @@ print "Training on ", train_set_x.shape
 
 
 if UsePCAKmeans: 
+    ipixels = ImageChannels*ImageSideFinal*ImageSideFinal
     print "Loading PCA"
     pca, kmeans = cPickle.load(open(PCAKmeansModel, "r"))
+    #TODO: add extra columns
     print "Transforming train"
-    X_tr = kmeans.transform(X_tr)
+    train_set_x = kmeans.transform(pca.transform(train_set_x[:,0:ipixels]))
     print "Transforming test"
-    X_tst = kmeans.transform(X_tst)
+    test_set_x = kmeans.transform(pca.transform(test_set_x[:,0:ipixels]))
 
 
 X_tr, Y_tr, X_tst, Y_st = train_set_x, train_set_y, test_set_x, test_set_y
@@ -56,6 +58,7 @@ X_tr, Y_tr, X_tst, Y_st = train_set_x, train_set_y, test_set_x, test_set_y
 def _tp_tn_fp_fn(y_true, y_pred):
     tp, tn, fp, fn = 0., 0., 0., 0.
     for y_t, y_p in zip(y_true, y_pred):
+        print y_t, y_p
         if y_t == y_p and y_t == 1:
             tp += 1
         if y_t != y_p and y_t == 1:
@@ -69,13 +72,15 @@ def _tp_tn_fp_fn(y_true, y_pred):
 
 #print "PCA ratios: ", pca.explained_variance_ratio_
 
-clf = RandomForestClassifier(n_estimators=7, max_features=64, 
+clf = RandomForestClassifier(n_estimators=14, #max_features=16
                              max_depth=None, min_samples_split=1, random_state=0, n_jobs=7, verbose=5)
 
 clf.fit(X_tr, Y_tr)
 
 print clf.feature_importances_
 tp, tn, fp, fn = _tp_tn_fp_fn(Y_st, clf.predict(X_tst))
+print tp, tn, fp, fn
+print "tp", "tn", "fp", "fn"
 
 print "Accuracy ", (tp+tn)/(tp+tn+fp+fn), "Negative precision ", tn/(tn+fn), "Precision ", tp/(tp+fp)
 
