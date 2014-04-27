@@ -40,14 +40,13 @@ print train_set_x[0]
 # test_set_x = test_set_x[:, 0:test_set_x.shape[1]-ExtraColumns]
 
 
-K = 16
 
 e = theanets.Experiment(
     theanets.Classifier,
     activation = "tanh",
     # hidden_dropouts=0.1,
     # input_dropouts=0.1,
-    # weight_l1 = 0.01,
+    weight_l1 = 0.001,
     layers=(train_set_x.shape[1], train_set_x.shape[1]*2, 10, 2),
     train_batches=1000
 )

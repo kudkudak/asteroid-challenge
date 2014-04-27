@@ -16,7 +16,7 @@ Fixed log scale:
 
 MODEL_NAME="learned_denoising_autoencoder_image.pkl"
 AddExtra = False
-Visualise = False
+Visualise = True
 #!/usr/bin/env python
 
 import matplotlib.pyplot as plt

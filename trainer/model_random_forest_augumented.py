@@ -1,3 +1,4 @@
+
 """
 Accuracy  0.962533333333 Negative precision  0.592991913747 Precision  0.971905119967 - 128 features
 Accuracy  0.959333333333 Negative precision  0.713253012048 Precision  0.966335275968 - 128 features
@@ -10,7 +11,13 @@ Accuracy  0.960466666667 Negative precision  0.791666666667 Precision  0.9660468
 Added logarithmic scale
 
 
+ccuracy  0.9467 Negative precision  0.857142857143 Precision  0.947046127591 i - 28 estimators, 16x16, 128 features
+
+
+
 """
+MODEL_NAME="rf.pkl"
+N=200000
 
 from sklearn import svm
 import cPickle
@@ -23,9 +30,11 @@ from sklearn.ensemble import RandomForestClassifier
 print get_example_memory(0)
 
 print "SVM Test.."
-X_tr, Y_tr, X_tst, Y_st =  get_training_test_matrices_expanded(N=200000, oversample_negative=True, generator=generator_fast, add_x_extra=True)
+train_set_x, train_set_y, test_set_x, test_set_y = \
+    get_training_test_matrices_expanded(N=N, oversample_negative=True, generator=generator_fast, add_x_extra=True)
 
-print "Training on ", X_tr.shape
+
+print "Training on ", train_set_x.shape
 
 """
 print "Fitting PCA"
@@ -37,6 +46,9 @@ X_tst = pca.transform(X_tst)
 import cPickle
 cPickle.dump(pca, open("trained_pca.pkl","w"))
 """
+
+X_tr, Y_tr, X_tst, Y_st = train_set_x, train_set_y, test_set_x, test_set_y
+
 
 def _tp_tn_fp_fn(y_true, y_pred):
     tp, tn, fp, fn = 0., 0., 0., 0.
@@ -54,7 +66,7 @@ def _tp_tn_fp_fn(y_true, y_pred):
 
 #print "PCA ratios: ", pca.explained_variance_ratio_
 
-clf = RandomForestClassifier(n_estimators=28, max_features=64, 
+clf = RandomForestClassifier(n_estimators=56, max_features=64, 
                              max_depth=None, min_samples_split=1, random_state=0, n_jobs=7, verbose=5)
 
 clf.fit(X_tr, Y_tr)
