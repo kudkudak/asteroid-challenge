@@ -13,7 +13,7 @@ from sklearn.cluster import KMeans
 import os
 
 train_set_x, train_set_y, test_set_x, test_set_y = \
-    get_training_test_matrices_expanded(N=N, oversample_negative=True, generator=generator_fast, add_x_extra=True)
+    get_training_test_matrices_expanded(N=N, oversample_negative=False, generator=generator_fast, add_x_extra=True, train_percentage=0.99)
 
 train_set_x_extra = train_set_x[:, train_set_x.shape[1]-ExtraColumns:]
 train_set_x = train_set_x[:, 0:train_set_x.shape[1]-ExtraColumns]
@@ -28,7 +28,7 @@ print train_set_x.shape
 
 
 
-pca = PCA(n_components=10, whiten=True)
+pca = PCA(n_components=40, whiten=True)
 kmeans = KMeans(n_clusters=49, n_init=1)
 if not os.path.exists(MODEL_NAME):
 
@@ -56,6 +56,7 @@ import matplotlib.pylab as plt
 
 if Visualise:
     for i, f in enumerate(F):
+        if i > 46: break
         plt.subplot(7, 7, i + 1)
         plt.imshow(np.hstack(f.reshape(4,ImageSideFinal, ImageSideFinal)), cmap="hot")
         plt.axis("off")
