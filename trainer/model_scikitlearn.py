@@ -15,6 +15,13 @@ Accuracy  0.9467 Negative precision  0.857142857143 Precision  0.947046127591 i 
 
 Added KMeans + PCA - high level denoising features (hopefully) ?? - still bug
 
+Fixed bug 2
+
+clf = RandomForestClassifier(n_estimators=7, max_features=128,
+                             max_depth=None, min_samples_split=1, random_state=0, n_jobs=7, verbose=5)
+Accuracy  0.9834 Negative precision  0.769911277312 Precision  0.987081022844
+True performance  0.506796116505
+
 
 
 """
@@ -23,15 +30,23 @@ import sklearn
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import linear_model
 MODEL_NAME="rf.pkl"
-N=150000
+N=200000
 
-UsePCAKmeans = True
+UsePCAKmeans = False
 PCAKmeansModel = "model_kmeans_pca.pkl"
-clf = RandomForestClassifier(n_estimators=28, max_features=128,
+clf = RandomForestClassifier(n_estimators=7, max_features=128,
                              max_depth=None, min_samples_split=1, random_state=0, n_jobs=7, verbose=5)
+clf = sklearn.linear_model.SGDClassifier(loss='log')
+clf = sklearn.linear_model.SGDRegressor(verbose=5)
+partialFit = False
+onlyLast = True
+classification = False
 
-clf = sklearn.linear_model.SGDClassifier(loss='log', class_weight='auto')
-partialFit = True
+print "====================="
+print "Training scikit model with partialFit=",partialFit," onlyLast=", onlyLast, " classification=", False
+print "Training model ",str(clf)
+print "===================="
+
 
 from sklearn import svm
 import cPickle
@@ -46,6 +61,11 @@ print "SVM Test.."
 train_set_x, train_set_y, test_set_x, test_set_y = \
     get_training_test_matrices_expanded(N=N, oversample_negative=True, generator=generator_fast, add_x_extra=True)
 
+# Fit only to the last
+if onlyLast:
+    test_set_y= test_set_y[:,3] # Try to predict detection on the last only
+    train_set_y = train_set_y[:, 3]
+
 train_set_x_extra = train_set_x[:, train_set_x.shape[1]-ExtraColumns:]
 test_set_x_extra = test_set_x[:, test_set_x.shape[1]-ExtraColumns:]
 print "Percentage Positive: ",sum([y for y in train_set_y if y == 1])
@@ -53,6 +73,9 @@ print "Percentage Positive: ",sum([y for y in train_set_y if y == 1])
 print "Training on ", train_set_x.shape
 
 train_set_x_pca, test_set_x_pca = None, None
+
+X_tr, Y_tr, X_tst, Y_st =train_set_x, train_set_y.astype("int32"),test_set_x, test_set_y.astype("int32")
+
 
 
 if UsePCAKmeans: 
@@ -64,29 +87,37 @@ if UsePCAKmeans:
     train_set_x_pca = kmeans.transform(pca.transform(train_set_x[:,0:ipixels]))
     print "Transforming test"
     test_set_x_pca = kmeans.transform(pca.transform(test_set_x[:,0:ipixels]))
+    # Add pca variables
+    X_tr, Y_tr, X_tst, Y_st =np.hstack((train_set_x, train_set_x_pca)), train_set_y.astype("int32"), np.hstack((test_set_x, test_set_x_pca)), test_set_y.astype("int32")
+
+if classification:
+
+    def _tp_tn_fp_fn(y_true, y_pred):
+        tp, tn, fp, fn = 0., 0., 0., 0.
+        for y_t, y_p in zip(y_true, y_pred):
+            if y_t == y_p and y_t == 1:
+                tp += 1
+            if y_t != y_p and y_t == 1:
+                fn += 1
+            if y_t != y_p and y_t == 0:
+                fp += 1
+            if y_t == y_p and y_t == 0:
+                tn += 1
+        return tp, tn, fp, fn
 
 
-X_tr, Y_tr, X_tst, Y_st =np.hstack((train_set_x, train_set_x_pca)), train_set_y, np.hstack((test_set_x, test_set_x_pca)), test_set_y
+    #print "PCA ratios: ", pca.explained_variance_ratio_
+    if partialFit:
+        for i in xrange(10):
+            clf.partial_fit(X_tr, Y_tr, [0,1])
+            tp, tn, fp, fn = _tp_tn_fp_fn(Y_st, clf.predict(X_tst))
+            print tp, tn, fp, fn
+            print "tp", "tn", "fp", "fn"
 
-
-def _tp_tn_fp_fn(y_true, y_pred):
-    tp, tn, fp, fn = 0., 0., 0., 0.
-    for y_t, y_p in zip(y_true, y_pred):
-        if y_t == y_p and y_t == 1:
-            tp += 1
-        if y_t != y_p and y_t == 1:
-            fn += 1
-        if y_t != y_p and y_t == 0:
-            fp += 1
-        if y_t == y_p and y_t == 0:
-            tn += 1
-    return tp, tn, fp, fn
-
-
-#print "PCA ratios: ", pca.explained_variance_ratio_
-if partialFit:
-    for i in xrange(10):
-        clf.partial_fit(X_tr, Y_tr, [0,1])
+            print "Accuracy ", (tp+tn)/(tp+tn+fp+fn), "Negative precision ", tn/(tn+fn+0.0001), "Precision ", tp/(tp+fp+0.00001)
+            print "True performance ", tn/(fp+tn)
+    else:
+        clf.fit(X_tr, Y_tr)
         tp, tn, fp, fn = _tp_tn_fp_fn(Y_st, clf.predict(X_tst))
         print tp, tn, fp, fn
         print "tp", "tn", "fp", "fn"
@@ -94,19 +125,12 @@ if partialFit:
         print "Accuracy ", (tp+tn)/(tp+tn+fp+fn), "Negative precision ", tn/(tn+fn+0.0001), "Precision ", tp/(tp+fp+0.00001)
         print "True performance ", tn/(fp+tn)
 
-
-cPickle.dump(clf, open("rndforest_2.pkl","w"))
-
-"""
-
-wclf = linear_model.SGDClassifier(loss='hinge', class_weight='auto')
-
-while True:
-    wclf.partial_fit(X_tr, Y_tr, classes=[0,1])
-    print "Scoring.."
-    print "Accuracy ", wclf.score(X_tst, Y_st)
-    print wclf.predict(X_tst)
-
-print "Dumping to file "
-"""
-
+else:
+    if partialFit:
+        for i in xrange(10):
+            print "Partial fit ",i
+            clf.partial_fit(X_tr, Y_tr)
+            print clf.score(X_tst, Y_st)
+    else:
+        raise "Not implemented" 
+    pass

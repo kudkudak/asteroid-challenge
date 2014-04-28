@@ -1,5 +1,5 @@
 MODEL_NAME="model_kmeans_pca.pkl"
-N=200000
+N=150000
 Visualise=True
 from sklearn import svm
 import cPickle

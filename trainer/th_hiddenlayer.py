@@ -10,7 +10,7 @@ import time
 
 
 class HiddenLayer(object):
-    def __init__(self, rng, input, n_in, n_out, activation=T.tanh):
+    def __init__(self, rng, input, n_in, n_out, weight_l1=0.0, weight_l2=0.0, activation=T.tanh):
         """
         Typical hidden layer of a MLP: units are fully-connected and have
         sigmoidal activation function. Weight matrix W is of shape (n_in,n_out)
@@ -38,6 +38,9 @@ class HiddenLayer(object):
         """
         self.input = input
 
+        self.weight_l1 = weight_l1
+        self.weight_l2 = weight_l2
+
         W_values = numpy.asarray(rng.uniform(
                 low=-numpy.sqrt(6. / (n_in + n_out)),
                 high=numpy.sqrt(6. / (n_in + n_out)),
@@ -54,3 +57,49 @@ class HiddenLayer(object):
         self.output = activation(T.dot(input, self.W) + self.b)
         # parameters of the model
         self.params = [self.W, self.b]
+
+    def regularization_cost(self):
+        cost = 0
+        if self.weight_l1 > 0:
+            cost += self.weight_l1 * sum(abs(w).sum() for w in self.weights)
+        if self.weight_l2 > 0:
+            cost += self.weight_l2 * sum((w * w).sum() for w in self.weights)
+        return cost
+
+class RegressionLayer(HiddenLayer):
+
+    def __init__(self, rng, input, n_in, n_out, weight_l1=0.0, weight_l2=0.0, activation=T.tanh):
+        """
+        Typical hidden layer of a MLP: units are fully-connected and have
+        sigmoidal activation function. Weight matrix W is of shape (n_in,n_out)
+        and the bias vector b is of shape (n_out,).
+
+        NOTE : The nonlinearity used here is tanh
+
+        Hidden unit activation is given by: tanh(dot(input,W) + b)
+
+        :type rng: numpy.random.RandomState
+        :param rng: a random number generator used to initialize weights
+
+        :type input: theano.tensor.dmatrix
+        :param input: a symbolic tensor of shape (n_examples, n_in)
+
+        :type n_in: int
+        :param n_in: dimensionality of input
+
+        :type n_out: int
+        :param n_out: number of hidden units
+
+        :type activation: theano.Op or function
+        :param activation: Non linearity to be applied in the hidden
+                              layer
+        """
+        super(rng, input, n_in, n_out, weight_l1=0.0, weight_l2=0.0, activation)
+
+    def cost(self, y):
+        err = self.y - self.output
+        return T.mean((err * err).sum(axis=1))
+
+    def errors(self, y):
+        err = T.abs(self.y - self.output)
+        return T.mean(err.sum(axis=1))

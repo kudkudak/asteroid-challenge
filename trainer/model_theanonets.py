@@ -27,25 +27,14 @@ if DEBUG >= 1:
     print "Theano configured for ",theano.config.floatX
 
 N = 200000
-
 train_set_x, train_set_y, test_set_x, test_set_y = \
     get_training_test_matrices_expanded(N=N, oversample_negative=True, generator=generator_fast, add_x_extra=True)
-
-print train_set_x[0]
-
-#
-# train_set_x_extra = train_set_x[:, train_set_x.shape[1]-ExtraColumns:]
-# train_set_x = train_set_x[:, 0:train_set_x.shape[1]-ExtraColumns]
-# test_set_x_extra = test_set_x[:, test_set_x.shape[1]-ExtraColumns:]
-# test_set_x = test_set_x[:, 0:test_set_x.shape[1]-ExtraColumns]
 
 
 
 e = theanets.Experiment(
     theanets.Regressor,
     activation = "tanh",
-    # hidden_dropouts=0.1,
-    # input_dropouts=0.1,
     weight_l1 = 0.001,
     layers=(train_set_x.shape[1], train_set_x.shape[1]*2, 10, 1),
     train_batches=1000
@@ -54,8 +43,6 @@ e.run((train_set_x, train_set_y.astype("int32").reshape(-1,1)), (test_set_x, tes
 
 print e.network.predict(test_set_x[0]), test_set_y[0]
 print e.network.predict(test_set_x[1]), test_set_y[1]
-
-
 
 plot_layers(e.network.weights)
 plt.tight_layout()

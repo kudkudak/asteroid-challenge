@@ -1,12 +1,16 @@
 from generate_aug_data import *
 import matplotlib.pylab as plt   
-from im_operators import * 
+from im_operators import *
 from visualize import *
-showFalse=True
-showDiff = True
+
+
+##### CONFIG ########
+showFalse=False
+showDiff = False
 showRaw = False
 average=False
 generator = generator_fast
+###### CONFIG #########3
 
 if showRaw:
     crop = 8.0
@@ -44,9 +48,11 @@ else:
 
 
     for ex, label in zip(train_set_x, train_set_y):
+            ex = ex[0:ImageChannels*ImageSideFinal**2]
+            print ex
             im = [j for j in ex.reshape(ImageChannels, ImageSideFinal, ImageSideFinal)]
             if average: 
                 avg = im[0]+im[1]+im[2]+im[3]
                 im = [avg/4.0, avg/4.0, avg/4.0, avg/4.0]
-            if label == 0 or showFalse:
+            if label[-1] == 0 or showFalse:
                 show_4_ex(im, None, title=str(label))

@@ -21,7 +21,7 @@ def load_img_det(i):
     det = None
     with open("data/{0}.det".format(i)) as f:
         det = f.read().split(" ")
-    return np.array(raw_values).reshape(4, 64, 64), det
+    return np.array(raw_values).reshape(4, 64, 64).astype("float64"), det
 
 
 
@@ -38,6 +38,7 @@ def preprocessing_no_gauss(img, det):
     return im_crop(img / config.MaximumPixelIntensity ,
                    6.0)
 def preprocessing_no_gauss_2x(img, det):
+
     return im_crop(img / config.MaximumPixelIntensity,
                    2.0)
 
@@ -79,8 +80,15 @@ def generator_crop_flip_8fold(img, det,  preprocessor=preprocessing_gauss_eq):
     img_flip_1_1 = im_flip(img, True, True)
     img_flip_1_0 = im_flip(img, True, False)
     img_flip_0_1 = im_flip(img, False, True)
+    # if int(det[-1])==0:
+    #     print img
+    #     import matplotlib.pylab as plt
+    #     plt.imshow(img)
+    #     plt.show()
+    #
+    #     print img_rot
 
-    return [img, img_flip_1_1,img_flip_1_1 , img_flip_0_1, img_rot, img_rot_flip_1_1, img_rot_flip_0_1, img_rot_flip_1_0]
+    return [img, img_flip_1_1,img_flip_1_0 , img_flip_0_1, img_rot, img_rot_flip_1_1, img_rot_flip_0_1, img_rot_flip_1_0]
 
 
 """
@@ -127,12 +135,20 @@ def generate_aug(generator, preprocessor, chunk_size, folder=config.DataAugDir, 
     for i in xrange(1, config.rawdataset_size+1):
         im_list, det = load_img_det(i)
 
+
+
         im_0_gen = generator(im_list[0], det, preprocessor)
         im_1_gen = generator(im_list[1], det, preprocessor)
         im_2_gen = generator(im_list[2], det, preprocessor)
         im_3_gen = generator(im_list[3], det, preprocessor)
 
         for im0, im1, im2, im3 in zip(im_0_gen, im_1_gen, im_2_gen, im_3_gen):
+
+            if int(det[-1])==0:
+                print im0
+                print im1
+                print im2
+                print im3
 
             if difference:
                 im1 -= im0

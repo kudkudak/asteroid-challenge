@@ -6,7 +6,7 @@ from theano.tensor.signal import downsample
 import time
 
 from th_logreg import LogisticRegression
-from th_hiddenlayer import HiddenLayer, RegressionLayer
+from th_hiddenlayer import HiddenLayer
 from th_cnn import LeNetConvPoolLayer
 from data_api import *
 from realtime_aug import *
@@ -14,19 +14,26 @@ import data_api
 
 learning_rate = 0.1
 rng = numpy.random.RandomState(23455)
+
+
 learning_rate = 0.01
 batch_size = 20
+
+
+
 learning_rate = 0.01
 batch_size = 100
+
+
+
 n_epochs = 10
+L1_reg=0.000
+L2_reg=0.0001
 N=150000
+
 N=200000
-add_extra = False
 
-
-
-
-
+add_extra = True
 
 def shared_dataset(data_x, data_y, borrow=True):
     """ Function that loads the dataset into shared variables
@@ -154,11 +161,11 @@ if __name__ == "__main__":
 
         # construct a fully-connected sigmoidal layer
         layer2 = HiddenLayer(rng, input=layer2_input,
-                            n_in=50 * ((l1ims-4)/2)**2, n_out=500, weight_l1=0.001,
+                            n_in=50 * ((l1ims-4)/2)**2, n_out=500,
                             activation=T.tanh)
 
         # classify the values of the fully-connected sigmoidal layer
-        layer3 = RegressionLayer(input=layer2.output, n_in=500, n_out=4, weight_l1=0.001)
+        layer3 = LogisticRegression(input=layer2.output, n_in=500, n_out=2)
 
     else:
         # Output (14,14) -> (5, 5)
@@ -169,25 +176,26 @@ if __name__ == "__main__":
         layer2_input = T.horizontal_stack(layer1.output.flatten(2), x_extra)
 
         # construct a fully-connected sigmoidal layer
-        layer2 = HiddenLayer(rng, input=layer2_input,weight_l1=0.001,
+        layer2 = HiddenLayer(rng, input=layer2_input,
                             n_in=50 * ((l1ims-4)/2)**2 + ExtraColumns, n_out=500,
                             activation=T.tanh)
 
         # classify the values of the fully-connected sigmoidal layer
-        layer3 = RegressionLayer(input=layer2.output, n_in=500, n_out=4, weight_l1=0.001)
+        layer3 = LogisticRegression(input=layer2.output, n_in=500, n_out=2)
 
     model = [layer0, layer1, layer2, layer3]
 
     # the cost we minimize during training is the negative log likelihood of
     # the model plus the regularization terms (L1 and L2); cost is expressed
     # here symbolically
-    cost = layer3.cost() + layer3.regularization_cost() + layer2.regularization_cost()
+    cost = layer3.negative_log_likelihood(y)
 
 
     # error - again: compile EXPRESSION (not function)
     errors = layer3.errors(y)
 
-
+    # error - again: compile EXPRESSION (not function)
+    precision = layer3.precision(y)
     # create a list of all model parameters to be fit by gradient descent
     params = layer3.params + layer2.params + layer1.params + layer0.params
 
@@ -210,6 +218,10 @@ if __name__ == "__main__":
         updates.append((param, param - learning_rate * gparam))
 
 
+    #
+    #indext =0
+    #print  train_set_x[index * batch_size: (index + 1) * batch_size,:]
+    #### Final functions ####
 
 
     train_model, test_model = None, None
@@ -228,7 +240,7 @@ if __name__ == "__main__":
 
 
         test_model = theano.function(inputs=[index],
-                outputs=errors,
+                outputs=[errors,precision,layer3.ypred0(y),layer3.y0(y)],
                 givens={
                     x: test_set_x[index * batch_size: (index + 1) * batch_size],
                     y: test_set_y[index * batch_size: (index + 1) * batch_size]})
@@ -248,7 +260,7 @@ if __name__ == "__main__":
 
 
         test_model = theano.function(inputs=[index],
-                outputs=errors,
+                outputs=[errors,precision,layer3.ypred0(y),layer3.y0(y)],
                 givens={
                     x: test_set_x[index * batch_size: (index + 1) * batch_size],
                     x_extra: test_set_x_extra[index * batch_size: (index + 1) * batch_size],
@@ -315,25 +327,26 @@ if __name__ == "__main__":
             if (iter + 1) % validation_frequency == 0:
                 # compute zero-one loss on validation set
                 validation_losses = []
+                validation_losses_prec = []
                 for i in xrange(n_test_batches):
                     out = test_model(i)
-                    validation_losses.append(out)
-                    # total, correct = 0., 0.
-                    # for y_pred_val, y_tru_val in zip (out[2], out[3]):
-                    #     if y_tru_val == 0:
-                    #         total += 1.
-                    #         if y_pred_val == 0: correct += 1.
+                    validation_losses.append(out[0])
+                    total, correct = 0., 0.
+                    for y_pred_val, y_tru_val in zip (out[2], out[3]):
+                        if y_tru_val == 0:
+                            total += 1.
+                            if y_pred_val == 0: correct += 1.
 
-                    # if total > 0: validation_losses_prec.append(correct/total)
+                    if total > 0: validation_losses_prec.append(correct/total)
 
                 this_validation_loss = numpy.mean(validation_losses)
+                this_validation_prec = numpy.mean(validation_losses_prec)
 
 
-
-                print('epoch %i, minibatch %i/%i, validation error (mean abs x-y in regression) %f %%' % \
+                print('epoch %i, minibatch %i/%i, validation error %f %%' % \
                     (epoch, minibatch_index + 1, n_train_batches,
                     this_validation_loss * 100.))
-
+                print "validation prec ",this_validation_prec*100
 
                 # if we got the best validation score until now
                 if this_validation_loss < best_validation_loss:

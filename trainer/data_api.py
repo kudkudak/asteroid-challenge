@@ -123,9 +123,9 @@ def get_example_memory(id):
         dataset_in_memory = True
 
         # Create in-memory objects
-        X_extra_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ExtraColumns), dtype="float64")
+        X_extra_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ImportColumnCount), dtype="float64")
         X_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ImageChannels * aug_image_side**2), dtype="float64")
-        Y_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ), dtype="int32")
+        Y_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ColumnsResultCoiunt), dtype="int32")
 
 
 
@@ -137,15 +137,16 @@ def get_example_memory(id):
             chk, chk_det = get_chunk(i)[0], get_chunk(i)[1]
 
 
-
             for j in xrange(len(chk_det)):
                 X_in_memory[in_memory_id, :] = chk[j, :, :, :].reshape((4* aug_image_side**2, ))
-                X_extra_in_memory[in_memory_id, :] = [float(x) for x in chk_det[j][9:15]]
-                Y_in_memory[in_memory_id] = 1 if float(chk_det[j][-1]) > 0.0 else 0
+
+                X_extra_in_memory[in_memory_id, :] = [float(chk_det[j][id]) for id in ImportantColumns]
+                Y_in_memory[in_memory_id, :] = [int(chk_det[j][id]) for id in ColumnsResult]
                 in_memory_id += 1
 
         try:
             # Normalize X_extra_in_memory
+            # TODO: add scikit-learn normalization
             X_in_memory[0:in_memory_id,:] = normalize(X_in_memory[0:in_memory_id,:], axis=1, norm='l1')
         except:
             pass
@@ -157,7 +158,7 @@ def get_example_memory(id):
             pass
 
 
-    return X_in_memory[id, :], Y_in_memory[id], X_extra_in_memory[id, :]
+    return X_in_memory[id, :], Y_in_memory[id, :], X_extra_in_memory[id, :]
 
 
 import numpy as np
@@ -240,8 +241,8 @@ def get_training_test_matrices_expanded(train_percentage=0.9, N = 100,
 
     X_train = np.empty(shape=(size_training, check_dim_example.shape[0]), dtype="float64")
     X_test = np.empty(shape=(size_testing, check_dim_example.shape[0]), dtype="float64")
-    Y_train = np.empty(shape=(size_training,), dtype="float64")
-    Y_test = np.empty(shape=(size_testing,), dtype="float64")
+    Y_train = np.empty(shape=(size_training, ColumnsResultCoiunt), dtype="float64")
+    Y_test = np.empty(shape=(size_testing, ColumnsResultCoiunt), dtype="float64")
 
     print "Filling in training dataset"
     for id, (ex, label) in enumerate(trn_iterator):
@@ -283,8 +284,8 @@ def get_cycled_training_test_generators_bare(train_percentage=0.9, oversample_ne
 
 
     if oversample_negative:
-        train_ids_negative = np.array([id for id in train_ids if Y_in_memory[id]==0])
-        train_ids_positives = np.array([id for id in train_ids if Y_in_memory[id]==1])
+        train_ids_negative = np.array([id for id in train_ids if any(Y_in_memory[id]==0)])
+        train_ids_positives = np.array([id for id in train_ids if any(Y_in_memory[id]==1)])
 
         train_ids_positive_indexes = np.random.choice(len(train_ids_positives), int(0.5*dataset_size*train_percentage), replace=True)
         train_ids_negative_indexes = np.random.choice(len(train_ids_negative), int(0.5*dataset_size*train_percentage), replace=True)

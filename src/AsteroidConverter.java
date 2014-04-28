@@ -126,8 +126,12 @@ public class AsteroidConverter
                 }
                 brdet.close();
 
+            
+                
 
                 int n = rawTraining.size()/(ImageChannels*ImageSide*ImageSide);
+                System.out.println(n);
+                System.out.println(cnt);
                 for(int i=0;i<n;++i){
                     file_counter += 1;
                     File file = new File("trainer/data/"+file_counter+"_img.raw");
@@ -141,6 +145,7 @@ public class AsteroidConverter
                             sb.append(out.get(j)+" ");
                     }
                     else{
+                        System.out.println("Not using log conversion");
                         for(int j=0;j<ImageChannels*ImageSide*ImageSide;++j)
                             sb.append(rawTraining.get(j+shift)+" ");
                     }
@@ -150,7 +155,7 @@ public class AsteroidConverter
 
                     file = new File("trainer/data/"+file_counter+".det");
                     writer = new PrintWriter(file);
-                    writer.write(detTraining.get(i));
+                    writer.write(detTraining.get(4*i)+" "+detTraining.get(4*i+1)+" "+detTraining.get(4*i+2)+" "+detTraining.get(4*i+3));
                     //writer.write(detTraining.stream().collect(Collectors.joining(" ")));
                     writer.close();
                 }

@@ -93,7 +93,7 @@ def generator_fast(img):
     tf = random_perturbation_transform(**default_augmentation_params)
     res = np.empty(shape=(ImageChannels, aug_image_side//CROP_FACTOR, aug_image_side//CROP_FACTOR))
     for i in xrange(4):
-        res[i,:,:] = im_crop(fast_warp(img[i,:,:]+0.5,tf), CROP_FACTOR)
+        res[i,:,:] = im_crop(fast_warp(img[i,:,:],tf), CROP_FACTOR)
     return res
 
 def fast_warp(img, tf, mode='reflect'):
