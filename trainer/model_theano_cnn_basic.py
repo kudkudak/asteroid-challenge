@@ -1,3 +1,6 @@
+import sklearn
+import sklearn.preprocessing
+
 import theano
 import theano.tensor as T
 from theano.tensor.nnet import conv
@@ -17,11 +20,10 @@ rng = numpy.random.RandomState(23455)
 learning_rate = 0.01
 batch_size = 20
 learning_rate = 0.01
-batch_size = 100
 n_epochs = 10
 N=150000
-N=2000
-add_extra = False
+N=200000
+add_extra = True
 onlyLast=True
 
 
@@ -59,6 +61,13 @@ if __name__ == "__main__":
 
     train_set_x, train_set_y, test_set_x, test_set_y = \
         get_training_test_matrices_expanded(N=N, oversample_negative=True, generator=generator_fast, add_x_extra=True)
+
+    print "Normalizing"
+    normalizer = sklearn.preprocessing.Normalizer(norm='l2', copy=False)
+    normalizer.fit_transform(train_set_x)
+    normalizer.transform(test_set_x)
+    train_set_x*=100.0
+    test_set_x*=100
 
     if onlyLast:
         train_set_y = train_set_y[:,3].reshape(-1,1)
@@ -270,9 +279,20 @@ if __name__ == "__main__":
                     x: train_set_x[index:index+1]})
 
 
-    from visualize import *
-    show_4_ex(get_example_th(0)[0].reshape(ImageChannels, ImageSideFinal, ImageSideFinal))
+    get_example_th_tst = theano.function(inputs=[index],
+                outputs=x,
+                givens={
+                    x: test_set_x[index:index+1]})
 
+
+    from visualize import *
+    import matplotlib.pylab as plt
+    for i in xrange(0):
+        ex = get_example_th_tst(i)[0]
+        error = 12
+        plt.imshow(ex.reshape(ImageChannels, ImageSideFinal, ImageSideFinal)[0])
+        plt.title("Error " + str(error))
+        plt.show()
 
 
     #############
@@ -379,9 +399,23 @@ if __name__ == "__main__":
     show_4_ex(layer0.W.get_value()[1])
 
     try:
+        for i in xrange(100):
+            ex = get_example_th_tst(i)[0]
+            error = test_model(i)
+            plt.imshow(ex.reshape(ImageChannels, ImageSideFinal, ImageSideFinal)[0])
+            plt.title("Error ",error)
+            plt.show()
+    except Exception, e:
+        print str(e)
+
+    try:
+        
+
         ### Visualise weights
         from utils import tile_raster_images
         import matplotlib.pylab as plt
+        plt.imshow(layour0.W.get_values(borrow=True).T[0].reshape(ImageChannels, ImageSideFinal, ImageSideFinal)[0])
+        plt.show()
         plt.imshow(tile_raster_images(X=layer0.W.get_value(borrow=True).T,
                      img_shape=(max(ImageChannels/2,1)*data_api.ImageSideFinal, max(ImageChannels/2, 1)*data_api.ImageSideFinal),
                      tile_shape=(20, 20),

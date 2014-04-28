@@ -1,3 +1,12 @@
+"""
+ Any results true true true
+e = theanets.Experiment(
+    theanets.Regressor,
+    layers=(train_set_x.shape[1], 128, 14,  last_layer),
+)
+"""
+
+
 #!/usr/bin/env python
 MODEL_NAME = "theanonets_feedforward.pkl"
 DEBUG = 1

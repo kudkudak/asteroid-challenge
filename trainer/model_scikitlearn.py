@@ -23,6 +23,8 @@ Accuracy  0.9834 Negative precision  0.769911277312 Precision  0.987081022844
 True performance  0.506796116505
 
 
+Chekcing with 58 estimators and PCA and 58 estimators without PCA
+
 
 """
 from sklearn import svm
@@ -40,7 +42,7 @@ onlyLast = True
 classification = True
 clf = sklearn.linear_model.SGDClassifier(loss='log')
 
-clf = RandomForestClassifier(n_estimators=28, max_features=128, max_depth=None, min_samples_split=1, random_state=0, n_jobs=7, verbose=5)
+clf = RandomForestClassifier(n_estimators=56, max_features=128, max_depth=None, min_samples_split=1, random_state=0, n_jobs=4, verbose=5)
 
 
 print "====================="
@@ -90,6 +92,12 @@ if UsePCAKmeans:
     test_set_x_pca = kmeans.transform(pca.transform(test_set_x[:,0:ipixels]))
     # Add pca variables
     X_tr, Y_tr, X_tst, Y_st =np.hstack((train_set_x, train_set_x_pca)), train_set_y.astype("int32"), np.hstack((test_set_x, test_set_x_pca)), test_set_y.astype("int32")
+
+print "Normalizing"
+normalizer = sklearn.preprocessing.Normalizer(norm='l2', copy=False)
+normalizer.fit_transform(X_tr)
+normalizer.transform(X_tst)
+
 
 if classification:
 

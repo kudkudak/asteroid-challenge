@@ -5,16 +5,15 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn import linear_model
 
 MODEL_NAME="rf.pkl"
-N=200000
-
+N=100000
+kernel='linear'
 UsePCAKmeans = True
 PCAKmeansModel = "model_kmeans_pca.pkl"
-clf = sklearn.linear_model.SGDRegressor(verbose=5)
 partialFit = False
 onlyLast = True
 classification = True
 
-clf = sklearn.svm.SVC() 
+clf = sklearn.svm.SVC(kernel=kernel)
 
 print "====================="
 print "Training scikit model with partialFit=",partialFit," onlyLast=", onlyLast, " classification=", classification
@@ -88,6 +87,7 @@ if classification:
     if partialFit:
         raise "Not"
     else:
+        print "Fitting"
         clf.fit(X_tr, Y_tr)
         tp, tn, fp, fn = _tp_tn_fp_fn(Y_st, clf.predict(X_tst))
         print tp, tn, fp, fn
@@ -97,7 +97,4 @@ if classification:
         print "True performance ", tn/(fp+tn)
 
 else:
-        raise "Not"
-    else:
-        raise "Not implemented" 
-    pass
+    raise "Not"
