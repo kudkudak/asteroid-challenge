@@ -70,6 +70,7 @@ def affine_add(img):
     return img + 0.3
 
 def generator_crop_flip_8fold(img, det,  preprocessor=preprocessing_gauss_eq):
+     
     # Preprocess image
     img = preprocessor(img, det)
     # Split
@@ -80,14 +81,7 @@ def generator_crop_flip_8fold(img, det,  preprocessor=preprocessing_gauss_eq):
     img_flip_1_1 = im_flip(img, True, True)
     img_flip_1_0 = im_flip(img, True, False)
     img_flip_0_1 = im_flip(img, False, True)
-    # if int(det[-1])==0:
-    #     print img
-    #     import matplotlib.pylab as plt
-    #     plt.imshow(img)
-    #     plt.show()
-    #
-    #     print img_rot
-
+    
     return [img, img_flip_1_1,img_flip_1_0 , img_flip_0_1, img_rot, img_rot_flip_1_1, img_rot_flip_0_1, img_rot_flip_1_0]
 
 
@@ -143,12 +137,13 @@ def generate_aug(generator, preprocessor, chunk_size, folder=config.DataAugDir, 
         im_3_gen = generator(im_list[3], det, preprocessor)
 
         for im0, im1, im2, im3 in zip(im_0_gen, im_1_gen, im_2_gen, im_3_gen):
-
+            """
             if int(det[-1])==0:
                 print im0
                 print im1
                 print im2
                 print im3
+            """
 
             if difference:
                 im1 -= im0

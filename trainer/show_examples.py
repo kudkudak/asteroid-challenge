@@ -5,6 +5,7 @@ from visualize import *
 
 
 ##### CONFIG ########
+show_4 = False
 showFalse=False
 showDiff = False
 showRaw = False
@@ -29,13 +30,25 @@ if showRaw:
                 im[2] = im[1]
                 im[1] = tmp
                 im[3] = im[3] - im[0]
-            show_4_ex(im, label, title=label[-1])
+
+            if show_4:
+                show_4_ex(im, label, title=label[-1])
+            else:
+                print "Showing raw 1"
+                plt.subplot(2,1,1)
+                plt.imshow(im[0])
+                plt.title(label[-1])
+                plt.colorbar()
+                plt.subplot(2,1,2)
+                plt.hist(im[0].flatten(), 256, range=(0,255)) 
+                plt.show()
+             
             #plt.title(str(label[-1]))
             #plt.imshow(im_crop(ex.reshape(4,64,64)[0],4.0), cmap='hot')
             #plt.show() 
 
 else:
-    N = 200000
+    N = 2000
 
     train_set_x, train_set_y, test_set_x, test_set_y = \
         get_training_test_matrices_expanded(N=N, oversample_negative=True, generator=generator, add_x_extra=True)
@@ -46,13 +59,14 @@ else:
     test_set_x = test_set_x[:, 0:test_set_x.shape[1]-ExtraColumns]
 
 
-
-    for ex, label in zip(train_set_x, train_set_y):
-            ex = ex[0:ImageChannels*ImageSideFinal**2]
+    import matplotlib.pylab as plt
+    for id, (ex, label) in enumerate(zip(train_set_x, train_set_y)):
             print ex
+
+            ex = ex[0:ImageChannels*ImageSideFinal**2]
             im = [j for j in ex.reshape(ImageChannels, ImageSideFinal, ImageSideFinal)]
             if average: 
                 avg = im[0]+im[1]+im[2]+im[3]
                 im = [avg/4.0, avg/4.0, avg/4.0, avg/4.0]
             if label[-1] == 0 or showFalse:
-                show_4_ex(im, None, title=str(label))
+               show_4_ex(im, None, title=str(label))

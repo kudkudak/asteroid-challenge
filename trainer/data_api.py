@@ -145,6 +145,7 @@ def get_example_memory(id):
                 in_memory_id += 1
 
         try:
+            pass
             # Normalize X_extra_in_memory
             # TODO: add scikit-learn normalization
             X_in_memory[0:in_memory_id,:] = normalize(X_in_memory[0:in_memory_id,:], axis=1, norm='l1')
