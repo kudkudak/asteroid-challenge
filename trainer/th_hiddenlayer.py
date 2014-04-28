@@ -61,9 +61,9 @@ class HiddenLayer(object):
     def regularization_cost(self):
         cost = 0
         if self.weight_l1 > 0:
-            cost += self.weight_l1 * sum(abs(w).sum() for w in self.weights)
+            cost += self.weight_l1 * abs(self.W).sum()
         if self.weight_l2 > 0:
-            cost += self.weight_l2 * sum((w * w).sum() for w in self.weights)
+            cost += self.weight_l2 * (self.W*self.W).sum()
         return cost
 
 class RegressionLayer(HiddenLayer):
@@ -97,9 +97,9 @@ class RegressionLayer(HiddenLayer):
         super(RegressionLayer,self).__init__(rng, input, n_in, n_out, weight_l1, weight_l2, activation)
 
     def cost(self, y):
-        err = self.y - self.output
+        err = y - self.output
         return T.mean((err * err).sum(axis=1))
 
     def errors(self, y):
-        err = T.abs(self.y - self.output)
+        err = abs(y - self.output)
         return T.mean(err.sum(axis=1))

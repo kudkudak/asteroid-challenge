@@ -44,20 +44,21 @@ if UsePCAKmeans:
     print "Transforming test"
     test_set_x_pca = kmeans.transform(pca.transform(test_set_x[:,0:ipixels]))
     # Add pca variables
-    X_tr, Y_tr, X_tst, Y_st =np.hstack((train_set_x, train_set_x_pca)), train_set_y.astype("int32"), np.hstack((test_set_x, test_set_x_pca)), test_set_y.astype("int32")
+    train_set_x, train_set_y, test_set_x, test_set_y =np.hstack((train_set_x, train_set_x_pca)), train_set_y.astype("int32"), np.hstack((test_set_x, test_set_x_pca)), test_set_y.astype("int32")
 
 if onlyLast:
-    Y_tr = Y_tr[:,3]
-    Y_st = Y_st[:,3]
+    train_set_y = train_set_y[:,3]
+    test_set_y = test_set_y[:,3]
+
+last_layer = 1 if len(train_set_y.shape)==1 else train_set_y.shape[1]
+
+print "LAST LAYER SIZE", last_layer
 
 e = theanets.Experiment(
     theanets.Regressor,
-    activation = "tanh",
-    weight_l1 = 0.01,
-    layers=(train_set_x.shape[1], 64, Y_tr.shape[1]),
-    train_batches=1000
+    layers=(train_set_x.shape[1], 128, 14,  last_layer),
 )
-e.run((train_set_x, train_set_y.astype("int32").reshape(-1,Y_tr.shape[1])), (test_set_x, test_set_y.astype("int32").reshape(-1,Y_tr.shape[1])))
+e.run((train_set_x, train_set_y.astype("int32").reshape(-1,last_layer)), (test_set_x, test_set_y.astype("int32").reshape(-1,last_layer)))
 
 print e.network.predict(test_set_x[0]), test_set_y[0]
 print e.network.predict(test_set_x[1]), test_set_y[1]

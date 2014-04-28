@@ -20,9 +20,9 @@ learning_rate = 0.01
 batch_size = 100
 n_epochs = 10
 N=150000
-N=200000
+N=2000
 add_extra = False
-
+onlyLast=True
 
 
 
@@ -60,6 +60,14 @@ if __name__ == "__main__":
     train_set_x, train_set_y, test_set_x, test_set_y = \
         get_training_test_matrices_expanded(N=N, oversample_negative=True, generator=generator_fast, add_x_extra=True)
 
+    if onlyLast:
+        train_set_y = train_set_y[:,3].reshape(-1,1)
+        test_set_y = test_set_y[:,3].reshape(-1,1)
+
+    last_layer = 1 if len(train_set_y.shape)==1 else train_set_y.shape[1]
+
+    print "LAST LAYER SIZE", last_layer
+
     print train_set_x[0]
 
     train_set_x_extra = train_set_x[:, train_set_x.shape[1]-ExtraColumns:]
@@ -88,6 +96,7 @@ if __name__ == "__main__":
         train_set_x_extra, w = shared_dataset(train_set_x_extra, None)
         test_set_x_extra, w = shared_dataset(test_set_x_extra, None)
 
+
     print train_set_x.shape
     print test_set_x.shape
 
@@ -101,7 +110,7 @@ if __name__ == "__main__":
     index = T.lscalar()  # index to a [mini]batch
     x = T.matrix()  # the data is presented as rasterized images (each being a 1-D row vector in x)
     x_extra = T.matrix()  # the data is presented as rasterized images (each being a 1-D row vector in x)
-    y = T.ivector()  # the labels are presented as 1D vector of [long int] labels
+    y = T.imatrix()  # the labels are presented as 1D vector of [long int] labels
 
 
     rng = numpy.random.RandomState(23455)
@@ -158,7 +167,7 @@ if __name__ == "__main__":
                             activation=T.tanh)
 
         # classify the values of the fully-connected sigmoidal layer
-        layer3 = RegressionLayer(input=layer2.output, n_in=500, n_out=4, weight_l1=0.001)
+        layer3 = RegressionLayer(rng, input=layer2.output, n_in=500, n_out=last_layer, weight_l1=0.001)
 
     else:
         # Output (14,14) -> (5, 5)
@@ -174,14 +183,14 @@ if __name__ == "__main__":
                             activation=T.tanh)
 
         # classify the values of the fully-connected sigmoidal layer
-        layer3 = RegressionLayer(input=layer2.output, n_in=500, n_out=4, weight_l1=0.001)
+        layer3 = RegressionLayer(rng, input=layer2.output, n_in=500, n_out=last_layer, weight_l1=0.001)
 
     model = [layer0, layer1, layer2, layer3]
 
     # the cost we minimize during training is the negative log likelihood of
     # the model plus the regularization terms (L1 and L2); cost is expressed
     # here symbolically
-    cost = layer3.cost() + layer3.regularization_cost() + layer2.regularization_cost()
+    cost = layer3.cost(y)# + layer3.regularization_cost() + layer2.regularization_cost()
 
 
     # error - again: compile EXPRESSION (not function)
@@ -261,17 +270,7 @@ if __name__ == "__main__":
                     x: train_set_x[index:index+1]})
 
 
-
-    print get_example_th(0)
-
-    print type(get_example_th(1))
-
-    print get_example_th(2)[0]
-
     from visualize import *
-
-    print get_example_th(0)[0].shape
-
     show_4_ex(get_example_th(0)[0].reshape(ImageChannels, ImageSideFinal, ImageSideFinal))
 
 
@@ -345,8 +344,7 @@ if __name__ == "__main__":
                     best_validation_loss = this_validation_loss
                     # test it on the test set
 
-                    test_losses = [test_model(i)[0]
-                                   for i in xrange(n_test_batches)]
+                    test_losses = [test_model(i) for i in xrange(n_test_batches)]
                     test_score = numpy.mean(test_losses)
 
                     print(('     epoch %i, minibatch %i/%i, test error of best'
