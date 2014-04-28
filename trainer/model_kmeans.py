@@ -57,6 +57,8 @@ import matplotlib.pylab as plt
 if Visualise:
     for i, f in enumerate(F):
         if i > 46: break
+        print f
+        print f.shape
         plt.subplot(7, 7, i + 1)
         plt.imshow(np.hstack(f.reshape(4,ImageSideFinal, ImageSideFinal)), cmap="hot")
         plt.axis("off")
@@ -66,11 +68,11 @@ if Visualise:
     N=min(1000, test_set_x.shape[0])
     x_plt, y_plt, clr_plt = [0]*int(N), [0]*int(N), [0]*int(N)
     for i in xrange(int(N)):
-        act = pca.transform(test_set_x[i])
+        act = kmeans.transform(pca.transform(test_set_x[i]))
         print act
-        x_plt[i] = act[0,0]
-        y_plt[i] = act[0,1]
-        clr_plt[i] = i % 2
+        x_plt[i] = act[0,2]
+        y_plt[i] = act[0,3]
+        clr_plt[i] = test_set_y[i,3]
 
     plt.scatter(x_plt, y_plt,s=90, c=clr_plt)
     plt.show()
