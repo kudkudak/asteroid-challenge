@@ -27,6 +27,19 @@ Chekcing with 58 estimators and PCA and 58 estimators without PCA
 
 
 """
+"""
+Single channel experiments:
+
+1. No PCA, n_estimators=14, max_features=128
+Accuracy  0.967055555556 Negative precision  0.333333273273 Precision  0.987216967047
+True performance  0.453431372549
+
+2. PCA
+
+"""
+
+
+
 from sklearn import svm
 import sklearn
 from sklearn.ensemble import RandomForestClassifier
@@ -35,7 +48,7 @@ MODEL_NAME="rf.pkl"
 N=180000
 
 UsePCAKmeans = True
-PCAKmeansModel = "model_kmeans_pca.pkl"
+PCAKmeansModel = "model_kmeans_pca_1.pkl"
 clf = sklearn.linear_model.SGDRegressor(verbose=5)
 partialFit = False
 onlyLast = True
@@ -66,8 +79,8 @@ train_set_x, train_set_y, test_set_x, test_set_y = \
 
 # Fit only to the last
 if onlyLast:
-    test_set_y= test_set_y[:,3] # Try to predict detection on the last only
-    train_set_y = train_set_y[:, 3]
+    test_set_y= test_set_y[:,ImageChannels-1] # Try to predict detection on the last only
+    train_set_y = train_set_y[:, ImageChannels-1]
 
 train_set_x_extra = train_set_x[:, train_set_x.shape[1]-ExtraColumns:]
 test_set_x_extra = test_set_x[:, test_set_x.shape[1]-ExtraColumns:]
@@ -133,6 +146,8 @@ if classification:
 
         print "Accuracy ", (tp+tn)/(tp+tn+fp+fn), "Negative precision ", tn/(tn+fn+0.0001), "Precision ", tp/(tp+fp+0.00001)
         print "True performance ", tn/(fp+tn)
+        import cPickle
+        cPickle.dump(clf, open(MODEL_NAME,"w"))
 
 else:
     if partialFit:

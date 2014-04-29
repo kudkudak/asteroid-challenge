@@ -1,8 +1,14 @@
 import os
 
+SplitChannels = True
+
 ##### Constants #####
 DataAugDir = "/data/data_aug_final_16"
 ImageChannels = int(4)
+
+if SplitChannels:
+    ImageChannels = int(1)
+
 ImageSide = int(64)
 MaximumPixelIntensity = 256.0 # Converted to log scale was 65553
 
@@ -22,6 +28,14 @@ ExtraColumns = ImportColumnCount
 #### Simple calculations
 rawdataset_files = [os.path.join("data", f) for f in next(os.walk("data"))[2] if f.endswith(".raw")]
 rawdataset_size = len(rawdataset_files)
+
+if SplitChannels:
+    ImageChannels = int(1)
+    ImportantColumns = [9,10,11,12,13,14]
+    ImportColumnCount = 6
+    ColumnsResultCoiunt = 1
+    ColumnsResult = [15] 
+    ExtraColumns=ImportColumnCount
 
 
 os.system("mkdir "+DataAugDir)

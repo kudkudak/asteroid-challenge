@@ -11,7 +11,7 @@ import numpy as np
 from skimage import exposure
 import os
 import json
-
+from config import *
 from im_operators import *
 import config
 
@@ -21,7 +21,7 @@ def load_img_det(i):
     det = None
     with open("data/{0}.det".format(i)) as f:
         det = f.read().split(" ")
-    return np.array(raw_values).reshape(4, 64, 64).astype("float64"), det
+    return np.array(raw_values).reshape(ImageChannels, 64, 64).astype("float64"), det
 
 
 
@@ -84,6 +84,67 @@ def generator_crop_flip_8fold(img, det,  preprocessor=preprocessing_gauss_eq):
     
     return [img, img_flip_1_1,img_flip_1_0 , img_flip_0_1, img_rot, img_rot_flip_1_1, img_rot_flip_0_1, img_rot_flip_1_0]
 
+def generate_aug_single_channel(generator, preprocessor, chunk_size, folder=config.DataAugDir, prefix="data_chunk_",
+                 fold_out = 8, crop_factor = 2.0 
+                 ):
+    assert chunk_size % fold_out == 0
+
+    #Split to chunks positive and negatives
+
+    # Check size
+    im_list, det = load_img_det(1)
+    im_test = preprocessor(im_list[0], det)
+
+    print "Producing images sized ",im_test.shape
+
+    # Prepare data
+    chunk_positive = np.zeros(shape=(chunk_size, ImageChannels, im_test.shape[0],im_test.shape[1]))
+    chunk_false = np.zeros(shape=(chunk_size, ImageChannels, im_test.shape[0],im_test.shape[1]))
+    chunk_false_id = 0
+    chunk_positive_id = 0
+    chunk_count = 0
+    chunk_false_dets = []
+    chunk_positive_dets = []
+
+    #
+    ## Pregenerate ids
+    #ids = range(chunk_size)
+
+    for i in xrange(1, config.rawdataset_size+1):
+        im_list, det = load_img_det(i)
+        im_0_gen = generator(im_list[0], det, preprocessor)
+
+        for im0 in im_0_gen:
+            
+            chunk_positive[chunk_positive_id,0,:,:] = im0
+            chunk_positive_dets.append(det)
+            chunk_positive_id += 1
+
+            ### Write out chunk
+            if chunk_positive_id == chunk_size:
+                print "Generated chunk ", chunk_count
+
+                np.save(os.path.join(folder, "p_"+prefix+str(chunk_count)+".npy"), chunk_positive)
+                with open(os.path.join(folder, "p_"+prefix+str(chunk_count)+"_dets.json"), "w") as f:
+                    f.write(json.dumps(chunk_positive_dets))
+                chunk_positive_id = 0
+                chunk_positive_dets = []
+                chunk_count += 1
+
+    if chunk_positive_id > 0:
+        ### Write out last chunks
+        np.save(os.path.join(folder, "p_"+prefix+str(chunk_count)+".npy"), chunk_positive[0:chunk_positive_id])
+        with open(os.path.join(folder, "p_"+prefix+str(chunk_count)+"_dets.json"), "w") as f:
+            f.write(json.dumps(chunk_positive_dets))
+        chunk_count += 1
+
+    print "Generated ",chunk_count, " chunks"
+
+    ### Write out desc
+    desc = {"chunk_size": chunk_size, "fold_out": fold_out, "image_side":im_test.shape[0], "crop_factor":crop_factor}
+    with open(os.path.join(folder, "data_aug.desc"), "w") as f:
+        f.write(json.dumps(desc))
+
 
 """
 Main workhorse for generating augumented dataset
@@ -129,12 +190,15 @@ def generate_aug(generator, preprocessor, chunk_size, folder=config.DataAugDir, 
     for i in xrange(1, config.rawdataset_size+1):
         im_list, det = load_img_det(i)
 
+        it = []
 
-
+        
         im_0_gen = generator(im_list[0], det, preprocessor)
         im_1_gen = generator(im_list[1], det, preprocessor)
         im_2_gen = generator(im_list[2], det, preprocessor)
         im_3_gen = generator(im_list[3], det, preprocessor)
+
+    
 
         for im0, im1, im2, im3 in zip(im_0_gen, im_1_gen, im_2_gen, im_3_gen):
             
@@ -233,4 +297,4 @@ def generate_aug(generator, preprocessor, chunk_size, folder=config.DataAugDir, 
 
 if __name__ == "__main__":
 
-    generate_aug(generator_crop_flip_8fold, preprocessing_no_gauss_2x, chunk_size=160, crop_factor=2.0, difference=False)
+    generate_aug_single_channel(generator_crop_flip_8fold, preprocessing_no_gauss_2x, chunk_size=160, crop_factor=2.0)

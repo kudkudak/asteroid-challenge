@@ -76,11 +76,11 @@ def generator_simple(img):
     Generator transforms 4xXxY -> 4xX/CROP_FACTORxY/CROP_FACTOR
     """
 
-    res = np.empty(shape=(4, IMAGE_WIDTH//CROP_FACTOR, IMAGE_HEIGHT//CROP_FACTOR))
+    res = np.empty(shape=(ImageChannels, IMAGE_WIDTH//CROP_FACTOR, IMAGE_HEIGHT//CROP_FACTOR))
 
     transf = _random_perturbation_transform(**default_augmentation_params)
 
-    for i in xrange(4):
+    for i in xrange(ImageChannels):
         res[i,:,:] = transf(img[i,:,:])
 
     return res
@@ -92,7 +92,7 @@ def generator_fast(img):
     """
     tf = random_perturbation_transform(**default_augmentation_params)
     res = np.empty(shape=(ImageChannels, aug_image_side//CROP_FACTOR, aug_image_side//CROP_FACTOR))
-    for i in xrange(4):
+    for i in xrange(ImageChannels):
         res[i,:,:] = im_crop(fast_warp(img[i,:,:],tf), CROP_FACTOR)
     return res
 
@@ -104,8 +104,8 @@ This wrapper function is about five times faster than skimage.transform.warp, fo
     return skimage.transform._warps_cy._warp_fast(img, m,  mode=mode)
 
 def default_generator(img):
-    res = np.empty(shape=(4, IMAGE_WIDTH//CROP_FACTOR, IMAGE_HEIGHT//CROP_FACTOR))
-    for i in xrange(4):
+    res = np.empty(shape=(ImageChannels, IMAGE_WIDTH//CROP_FACTOR, IMAGE_HEIGHT//CROP_FACTOR))
+    for i in xrange(ImageChannels):
         res[i,:,:] = im_crop(img[i,:,:], CROP_FACTOR)
     return res
 

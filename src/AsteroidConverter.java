@@ -11,6 +11,7 @@ public class AsteroidConverter
     static String testFile = null;
     static String folder = "";
     static boolean convert_log=true;
+    static boolean split_channels=true;
 
     public static void printMessage(String s) {
         if (debug) {
@@ -128,41 +129,78 @@ public class AsteroidConverter
 
             
                 
+                if(!split_channels){        
+                    int n = rawTraining.size()/(ImageChannels*ImageSide*ImageSide);
+                    System.out.println(n);
+                    System.out.println(cnt);
+                    for(int i=0;i<n;++i){
+                        file_counter += 1;
+                        File file = new File("trainer/data/"+file_counter+"_img.raw");
+                        PrintWriter writer = new PrintWriter(file);
+                        int shift = i*ImageChannels*ImageSide*ImageSide;
+                        StringBuilder sb = new StringBuilder();
+                        if(convert_log==true){
+                            ArrayList<Double> out = new ArrayList<Double>();
+                            convertLog(rawTraining, shift, out);
+                            for(int j=0;j<ImageChannels*ImageSide*ImageSide;++j)
+                                sb.append(out.get(j)+" ");
+                        }
+                        else{
+                            System.out.println("Not using log conversion");
+                            for(int j=0;j<ImageChannels*ImageSide*ImageSide;++j)
+                                sb.append(rawTraining.get(j+shift)+" ");
+                        }
 
-                int n = rawTraining.size()/(ImageChannels*ImageSide*ImageSide);
-                System.out.println(n);
-                System.out.println(cnt);
-                for(int i=0;i<n;++i){
-                    file_counter += 1;
-                    File file = new File("trainer/data/"+file_counter+"_img.raw");
-                    PrintWriter writer = new PrintWriter(file);
-                    int shift = i*ImageChannels*ImageSide*ImageSide;
-                    StringBuilder sb = new StringBuilder();
-                    if(convert_log==true){
-                        ArrayList<Double> out = new ArrayList<Double>();
-                        convertLog(rawTraining, shift, out);
-                        for(int j=0;j<ImageChannels*ImageSide*ImageSide;++j)
-                            sb.append(out.get(j)+" ");
+                        writer.write(sb.toString());
+                        writer.close();
+
+                        file = new File("trainer/data/"+file_counter+".det");
+                        writer = new PrintWriter(file);
+                        writer.write(detTraining.get(4*i)+" "+detTraining.get(4*i+1)+" "+detTraining.get(4*i+2)+" "+detTraining.get(4*i+3));
+                        //writer.write(detTraining.stream().collect(Collectors.joining(" ")));
+                        writer.close();
                     }
-                    else{
-                        System.out.println("Not using log conversion");
-                        for(int j=0;j<ImageChannels*ImageSide*ImageSide;++j)
-                            sb.append(rawTraining.get(j+shift)+" ");
+                    printMessage("Contains information about "+n+" detections");
+                }else{
+                    int n = rawTraining.size()/(ImageChannels*ImageSide*ImageSide);
+              
+                    System.out.println(n);
+                    System.out.println(cnt);
+                    for(int i=0;i<n;++i){
+                        for(int channels=0;channels<4;++channels){
+                            file_counter += 1;
+                            File file = new File("trainer/data/"+file_counter+"_img.raw");
+                            PrintWriter writer = new PrintWriter(file);
+                            int shift = i*ImageChannels*ImageSide*ImageSide;
+                            StringBuilder sb = new StringBuilder();
+                            if(convert_log==true){
+                                ArrayList<Double> out = new ArrayList<Double>();
+                                convertLog(rawTraining, shift, out);
+                                for(int j=0;j<ImageSide*ImageSide;++j)
+                                    sb.append(out.get(j+channels*ImageSide*ImageSide)+" ");
+                            }
+                            else{
+                                System.out.println("Not using log conversion");
+                                for(int j=0;j<ImageSide*ImageSide;++j)
+                                    sb.append(rawTraining.get(j+shift+channels*ImageSide*ImageSide)+" ");
+                            }
+
+                            writer.write(sb.toString());
+                            writer.close();
+
+                            file = new File("trainer/data/"+file_counter+".det");
+                            writer = new PrintWriter(file);
+                            writer.write(detTraining.get(4*i+channels));
+                            //writer.write(detTraining.stream().collect(Collectors.joining(" ")));
+                            writer.close();
+                        //
+                        }
                     }
-
-                    writer.write(sb.toString());
-                    writer.close();
-
-                    file = new File("trainer/data/"+file_counter+".det");
-                    writer = new PrintWriter(file);
-                    writer.write(detTraining.get(4*i)+" "+detTraining.get(4*i+1)+" "+detTraining.get(4*i+2)+" "+detTraining.get(4*i+3));
-                    //writer.write(detTraining.stream().collect(Collectors.joining(" ")));
-                    writer.close();
+                    printMessage("Contains information about "+n+" detections");
                 }
 
 
 
-                printMessage("Contains information about "+n+" detections");
 
 
         }

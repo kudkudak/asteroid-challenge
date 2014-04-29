@@ -4,7 +4,7 @@ from im_operators import *
 from visualize import *
 from skimage import data, img_as_float
 from skimage import exposure
-
+from config import *
 ##### CONFIG ########
 show_4 = False
 showFalse=False
@@ -21,7 +21,7 @@ if showRaw:
         if label[-1] == '0' or showFalse:
             print label
             print ex.shape
-            im = [im_crop(j, crop) for j in ex.reshape(4,64,64)]
+            im = [im_crop(j, crop) for j in ex.reshape(ImageChannels,64,64)]
             if showDiff:
                 print im[1].shape
                 print im[1]

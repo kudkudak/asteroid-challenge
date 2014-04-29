@@ -1,5 +1,5 @@
-MODEL_NAME="model_kmeans_pca.pkl"
-N=150000
+MODEL_NAME="model_kmeans_pca_1_channel.pkl"
+N=300000
 Visualise=True
 from sklearn import svm
 import cPickle
@@ -60,7 +60,7 @@ if Visualise:
         print f
         print f.shape
         plt.subplot(7, 7, i + 1)
-        plt.imshow(np.hstack(f.reshape(4,ImageSideFinal, ImageSideFinal)), cmap="hot")
+        plt.imshow(np.hstack(f.reshape(ImageChannels,ImageSideFinal, ImageSideFinal)), cmap="hot")
         plt.axis("off")
     plt.show()
 

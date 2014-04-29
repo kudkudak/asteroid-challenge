@@ -21,7 +21,7 @@ def load_img_det(i):
     det = None
     with open("data/{0}.det".format(i)) as f:
         det = f.read().split(" ")
-    return np.array(raw_values).reshape(4, 64, 64), det
+    return np.array(raw_values).reshape(ImageChannels, 64, 64), det
 
 
 
@@ -123,8 +123,8 @@ def get_example_memory(id):
         dataset_in_memory = True
 
         # Create in-memory objects
-        X_extra_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ImportColumnCount), dtype="float64")
-        X_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ImageChannels * aug_image_side**2), dtype="float64")
+        X_extra_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ImportColumnCount), dtype="float32")
+        X_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ImageChannels * aug_image_side**2), dtype="float32")
         Y_in_memory = np.empty(shape=(rawdataset_size*aug_fold_out, ColumnsResultCoiunt), dtype="int32")
 
 
@@ -139,7 +139,7 @@ def get_example_memory(id):
 
             for j in xrange(len(chk_det)):
                 #print chk[j,:,:,:]
-                X_in_memory[in_memory_id, :] = chk[j, :, :, :].reshape((4* aug_image_side**2, ))
+                X_in_memory[in_memory_id, :] = chk[j, :, :, :].reshape((ImageChannels* aug_image_side**2, ))
 
                 X_extra_in_memory[in_memory_id, :] = [float(chk_det[j][id]) for id in ImportantColumns]
                 Y_in_memory[in_memory_id, :] = [int(chk_det[j][id]) for id in ColumnsResult]
@@ -241,10 +241,10 @@ def get_training_test_matrices_expanded(train_percentage=0.9, N = 100,
     if train_percentage < 1.0:
         next(tst_iterator)
 
-    X_train = np.empty(shape=(size_training, check_dim_example.shape[0]), dtype="float64")
-    X_test = np.empty(shape=(size_testing, check_dim_example.shape[0]), dtype="float64")
-    Y_train = np.empty(shape=(size_training, ColumnsResultCoiunt), dtype="float64")
-    Y_test = np.empty(shape=(size_testing, ColumnsResultCoiunt), dtype="float64")
+    X_train = np.empty(shape=(size_training, check_dim_example.shape[0]), dtype="float32")
+    X_test = np.empty(shape=(size_testing, check_dim_example.shape[0]), dtype="float32")
+    Y_train = np.empty(shape=(size_training, ColumnsResultCoiunt), dtype="float32")
+    Y_test = np.empty(shape=(size_testing, ColumnsResultCoiunt), dtype="float32")
 
     print "Filling in training dataset"
     for id, (ex, label) in enumerate(trn_iterator):
@@ -315,14 +315,14 @@ def get_cycled_training_test_generators_bare(train_percentage=0.9, oversample_ne
                 datum = get_example_memory(i)
                 added_features = feature_gen(*datum) if feature_gen else []
                 yield np.hstack(
-                    (generator(datum[0].reshape(4, aug_image_side, aug_image_side)).
+                    (generator(datum[0].reshape(ImageChannels, aug_image_side, aug_image_side)).
                      reshape(-1), datum[2], added_features)), datum[1]
 
         def test_generator():
             for i in cycle(test_ids):
                 datum = get_example_memory(i)
                 added_features = feature_gen(*datum) if feature_gen else []
-                yield np.hstack((default_generator(datum[0].reshape(4, aug_image_side, aug_image_side)).
+                yield np.hstack((default_generator(datum[0].reshape(ImageChannels, aug_image_side, aug_image_side)).
                      reshape(-1), datum[2], added_features)), datum[1]
 
     else:
@@ -331,14 +331,14 @@ def get_cycled_training_test_generators_bare(train_percentage=0.9, oversample_ne
                 datum = get_example_memory(i)
                 added_features = feature_gen(*datum) if feature_gen else []
                 yield np.hstack(
-                    (generator(datum[0].reshape(4, aug_image_side, aug_image_side)).
+                    (generator(datum[0].reshape(ImageChannels, aug_image_side, aug_image_side)).
                      reshape(-1), added_features)), datum[1]
 
         def test_generator():
             for i in cycle(test_ids):
                 datum = get_example_memory(i)
                 added_features = feature_gen(*datum) if feature_gen else []
-                yield np.hstack((default_generator(datum[0].reshape(4, aug_image_side, aug_image_side)).
+                yield np.hstack((default_generator(datum[0].reshape(ImageChannels, aug_image_side, aug_image_side)).
                      reshape(-1), added_features)), datum[1]
 
     return train_generator(), test_generator()

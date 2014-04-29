@@ -14,12 +14,12 @@ def load_img_det(i):
     det = None
     with open("data/{0}.det".format(i)) as f:
         det = f.read().split(" ")
-    return np.array(raw_values).reshape(4, 64, 64), det
+    return np.array(raw_values).reshape(ImageChannels, 64, 64), det
 
 def get_img_det(i):
     raw_values = [float(x) for x in open("data/{0}_img.raw".format(i)).
         read().split(" ") if len(x) > 0]
-    im1_raw = np.array(raw_values).reshape(4, 64, 64)
+    im1_raw = np.array(raw_values).reshape(ImageChanells, 64, 64)
     det = None
     with open("data/{0}.det".format(i)) as f:
         det = f.read().split(" ")
