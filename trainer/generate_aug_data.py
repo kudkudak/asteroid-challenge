@@ -137,13 +137,13 @@ def generate_aug(generator, preprocessor, chunk_size, folder=config.DataAugDir, 
         im_3_gen = generator(im_list[3], det, preprocessor)
 
         for im0, im1, im2, im3 in zip(im_0_gen, im_1_gen, im_2_gen, im_3_gen):
-            """
+            
             if int(det[-1])==0:
                 print im0
                 print im1
                 print im2
                 print im3
-            """
+            
 
             if difference:
                 im1 -= im0

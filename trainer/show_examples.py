@@ -2,7 +2,8 @@ from generate_aug_data import *
 import matplotlib.pylab as plt   
 from im_operators import *
 from visualize import *
-
+from skimage import data, img_as_float
+from skimage import exposure
 
 ##### CONFIG ########
 show_4 = False
@@ -35,12 +36,14 @@ if showRaw:
                 show_4_ex(im, label, title=label[-1])
             else:
                 print "Showing raw 1"
-                plt.subplot(2,1,1)
+                plt.subplot(3,1,1)
                 plt.imshow(im[0])
                 plt.title(label[-1])
                 plt.colorbar()
-                plt.subplot(2,1,2)
+                plt.subplot(3,1,2)
                 plt.hist(im[0].flatten(), 256, range=(0,255)) 
+                plt.subplot(3,1,3)
+                plt.imshow(exposure.equalize_hist(im[0]))
                 plt.show()
              
             #plt.title(str(label[-1]))
@@ -48,7 +51,7 @@ if showRaw:
             #plt.show() 
 
 else:
-    N = 2000
+    N = 2100
 
     train_set_x, train_set_y, test_set_x, test_set_y = \
         get_training_test_matrices_expanded(N=N, oversample_negative=True, generator=generator, add_x_extra=True)
@@ -69,4 +72,16 @@ else:
                 avg = im[0]+im[1]+im[2]+im[3]
                 im = [avg/4.0, avg/4.0, avg/4.0, avg/4.0]
             if label[-1] == 0 or showFalse:
-               show_4_ex(im, None, title=str(label))
+                if show_4:
+                    show_4_ex(im, None, title=str(label))
+                else:
+                    plt.subplot(3,1,1)
+                    plt.imshow(im[0])
+                    plt.title(label[-1])
+                    plt.colorbar()
+                    plt.subplot(3,1,2)
+                    plt.hist(im[0].flatten(), 256, range=(0,255)) 
+                    plt.subplot(3,1,3)
+                    plt.imshow(exposure.equalize_hist(im[0]))
+                    plt.show()
+                

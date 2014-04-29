@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn import linear_model
 
 MODEL_NAME="rf.pkl"
-N=100000
+N=80000
 kernel='linear'
 UsePCAKmeans = True
 PCAKmeansModel = "model_kmeans_pca.pkl"
@@ -64,7 +64,7 @@ if UsePCAKmeans:
     X_tr, Y_tr, X_tst, Y_st =np.hstack((train_set_x, train_set_x_pca)), train_set_y.astype("int32"), np.hstack((test_set_x, test_set_x_pca)), test_set_y.astype("int32")
 
 print "Normalizing"
-normalizer = sklearn.preprocessing.Normalizer(norm='l2', copy=False)
+normalizer = sklearn.preprocessing.Scaler(norm='l1', copy=False)
 normalizer.fit_transform(X_tr)
 normalizer.transform(X_tst)
 

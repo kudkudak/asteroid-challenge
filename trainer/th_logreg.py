@@ -36,6 +36,8 @@ class LogisticRegression(object):
         # compute vector of class-membership probabilities in symbolic form
         self.p_y_given_x = T.nnet.softmax(T.dot(input, self.W) + self.b)
 
+        self.output = self.p_y_given_x
+
         # compute prediction as class whose probability is maximal in
         # symbolic form
         self.y_pred=T.argmax(self.p_y_given_x, axis=1)

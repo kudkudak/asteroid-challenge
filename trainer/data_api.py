@@ -138,6 +138,7 @@ def get_example_memory(id):
 
 
             for j in xrange(len(chk_det)):
+                #print chk[j,:,:,:]
                 X_in_memory[in_memory_id, :] = chk[j, :, :, :].reshape((4* aug_image_side**2, ))
 
                 X_extra_in_memory[in_memory_id, :] = [float(chk_det[j][id]) for id in ImportantColumns]
@@ -148,7 +149,7 @@ def get_example_memory(id):
             pass
             # Normalize X_extra_in_memory
             # TODO: add scikit-learn normalization
-            X_in_memory[0:in_memory_id,:] = normalize(X_in_memory[0:in_memory_id,:], axis=1, norm='l1')
+            #X_in_memory[0:in_memory_id,:] = normalize(X_in_memory[0:in_memory_id,:], axis=1, norm='l1')
         except:
             pass
 

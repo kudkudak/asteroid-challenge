@@ -38,6 +38,9 @@ class HiddenLayer(object):
         """
         self.input = input
 
+
+        self.activation = activation
+
         self.weight_l1 = weight_l1
         self.weight_l2 = weight_l2
 
@@ -96,8 +99,11 @@ class RegressionLayer(HiddenLayer):
         """
         super(RegressionLayer,self).__init__(rng, input, n_in, n_out, weight_l1, weight_l2, activation)
 
+    def predict(self, val):
+        return self.activation(T.dot(val, self.W) + self.b)
+
     def cost(self, y):
-        err = y - self.output
+        err = abs(y - self.output)
         return T.mean((err * err).sum(axis=1))
 
     def errors(self, y):

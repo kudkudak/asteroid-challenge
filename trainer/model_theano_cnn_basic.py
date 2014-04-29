@@ -18,14 +18,14 @@ import data_api
 learning_rate = 0.1
 rng = numpy.random.RandomState(23455)
 learning_rate = 0.01
-batch_size = 20
+batch_size = 200
 learning_rate = 0.01
-n_epochs = 2
-N=150000
-N=200000
+n_epochs = 12
+N=180000
+#N=200000
 add_extra = True
 onlyLast=True
-logReg = False
+logReg = True
 MODEL_NAME = "theano_cnn.pkl"
 
 
@@ -59,13 +59,16 @@ if __name__ == "__main__":
     train_set_x, train_set_y, test_set_x, test_set_y = \
         get_training_test_matrices_expanded(N=N, oversample_negative=True, generator=generator_fast, add_x_extra=True)
 
-    #### NORMALIZATION + scaling ######
-    print "Normalizing"
-    normalizer = sklearn.preprocessing.Normalizer(norm='l2', copy=False)
-    normalizer.fit_transform(train_set_x)
-    normalizer.transform(test_set_x)
-    train_set_x*=100.0
-    test_set_x*=100
+
+
+    print train_set_x[0]
+    print train_set_x[1]
+
+    #### NORMALIZATION + scaling ###### #TODO: remove scalng, remove normalization - see what happens, would be easier without this step
+   # print "Normalizing"
+   # normalizer = sklearn.preprocessing.Normalizer(norm='l2', copy=False)
+   # normalizer.fit_transform(train_set_x)
+   # normalizer.transform(test_set_x)
 
     #### PREPARE OUTPUT LAYER layer #####
     if onlyLast:
@@ -114,6 +117,8 @@ if __name__ == "__main__":
     x = T.matrix()  # the data is presented as rasterized images (each being a 1-D row vector in x)
     x_extra = T.matrix()  # the data is presented as rasterized images (each being a 1-D row vector in x)
     y = T.imatrix()  # the labels are presented as 1D vector of [long int] labels
+    if logReg:
+        y = T.ivector()
 
 
     rng = numpy.random.RandomState(23455)
@@ -156,6 +161,7 @@ if __name__ == "__main__":
     layer2 = None
     layer3 = None
 
+
     if not add_extra:
         # Output (14,14) -> (5, 5)
 
@@ -166,11 +172,11 @@ if __name__ == "__main__":
 
         # construct a fully-connected sigmoidal layer
         layer2 = HiddenLayer(rng, input=layer2_input,
-                            n_in=50 * ((l1ims-4)/2)**2, n_out=500, weight_l1=0.001,
+                            n_in=50 * ((l1ims-4)/2)**2, n_out=50,
                             activation=T.tanh)
 
         # classify the values of the fully-connected sigmoidal layer
-        layer3 = RegressionLayer(rng, input=layer2.output, n_in=500, n_out=last_layer, weight_l1=0.001)
+        layer3 = LogisticRegression(input=layer2.output, n_in=50, n_out=2)
 
     else:
         # Output (14,14) -> (5, 5)
@@ -181,20 +187,23 @@ if __name__ == "__main__":
         layer2_input = T.horizontal_stack(layer1.output.flatten(2), x_extra)
 
         # construct a fully-connected sigmoidal layer
-        layer2 = HiddenLayer(rng, input=layer2_input,weight_l1=0.001,
+        layer2 = HiddenLayer(rng, input=layer2_input,
                             n_in=50 * ((l1ims-4)/2)**2 + ExtraColumns, n_out=500,
                             activation=T.tanh)
 
         # classify the values of the fully-connected sigmoidal layer
-        layer3 = RegressionLayer(rng, input=layer2.output, n_in=500, n_out=last_layer, weight_l1=0.001)
+        layer3 = LogisticRegression(input=layer2.output, n_in=500, n_out=2)
 
     model = [layer0, layer1, layer2, layer3]
 
     # the cost we minimize during training is the negative log likelihood of
     # the model plus the regularization terms (L1 and L2); cost is expressed
     # here symbolically
-    cost = layer3.cost(y)# + layer3.regularization_cost() + layer2.regularization_cost()
 
+    if not logReg:
+        cost = layer3.cost(y)# + layer3.regularization_cost() + layer2.regularization_cost()
+    else:
+        cost = layer3.negative_log_likelihood(y) 
 
     # error - again: compile EXPRESSION (not function)
     errors = layer3.errors(y)
@@ -250,7 +259,7 @@ if __name__ == "__main__":
         # the same time updates the parameter of the model based on the rules
         # defined in `updates`
         train_model = theano.function(inputs=[index],
-                outputs=cost,
+                outputs=(cost,errors),
                 updates=updates,
                 givens={
                     x: train_set_x[index * batch_size: (index + 1) * batch_size],
@@ -279,6 +288,14 @@ if __name__ == "__main__":
                     x: test_set_x[index:index+1],
                     y: test_set_y[index:index+1]})
 
+    print get_example_th_tst(0)
+
+    predict_test = theano.function(inputs=[index],
+            outputs=(layer3.output),#layer3.output, #layer3.predict(T.horizontal_stack(layer1.output.flatten(2),x_extra)),
+            givens={
+                x: test_set_x[index * batch_size: (index + 1) * batch_size, :],
+                x_extra: test_set_x_extra[index * batch_size: (index + 1) * batch_size, :]})
+
 
     from visualize import *
     import matplotlib.pylab as plt
@@ -299,7 +316,7 @@ if __name__ == "__main__":
                                   # found
     improvement_threshold = 0.995  # a relative improvement of this much is
                                   # considered significant
-    validation_frequency = min(n_train_batches, patience / 2)
+    validation_frequency = min(n_train_batches, patience / 5)
                                   # go through this many
                                   # minibatche before checking the network
                                   # on the validation set; in this case we
@@ -314,9 +331,13 @@ if __name__ == "__main__":
         epoch = 0
         while (epoch < n_epochs) and (not done_looping):
             epoch = epoch + 1
+            minibatch_avg_cost, minibatch_avg_error =0.0,0.0
             for minibatch_index in xrange(n_train_batches):
 
-                minibatch_avg_cost = train_model(minibatch_index)
+                ## Calculate monitors
+                minibatch_avg_cost_in, minibatch_avg_error_in = train_model(minibatch_index)
+                minibatch_avg_cost = (minibatch_avg_cost+minibatch_avg_cost_in)
+                minibatch_avg_error = (minibatch_avg_error+minibatch_avg_error_in)
                 # iteration number
                 iter = (epoch - 1) * n_train_batches + minibatch_index
 
@@ -337,10 +358,11 @@ if __name__ == "__main__":
                     this_validation_loss = numpy.mean(validation_losses)
 
 
-
-                    print('epoch %i, minibatch %i/%i, validation error (mean abs x-y in regression) %f %%' % \
+    
+                    print('epoch %i, minibatch %i/%i, validation error (mean abs x-y in regression or mean not equal in logistic regression) %f %%' % \
                         (epoch, minibatch_index + 1, n_train_batches,
                         this_validation_loss * 100.))
+                    print "Minibatch avg cost ",minibatch_avg_cost/(minibatch_index+1.), " minibatch avg error ", minibatch_avg_error/(minibatch_index+1.)
 
 
                     # if we got the best validation score until now
@@ -392,13 +414,17 @@ if __name__ == "__main__":
 
     try:
         for i in xrange(10000):
-            xy = get_example_th_tst(i)[0]
-            x = xy[0]
-            y = xy[1]
-            error = test_model(i)
-            plt.imshow(x.reshape(ImageChannels, ImageSideFinal, ImageSideFinal)[0])
-            plt.title("Label "+str(y)+" Error " + str(error))
-            plt.show()
+            xy_net = get_example_th_tst(i)
+            x_net = xy_net[0][0]
+            y_net = xy_net[1]
+            if (logReg and y_net[0]==0) or (not logReg and y_net[0,0] == 0):
+                print "0 example"
+                print predict_test(i)
+                error_net = test_model(i)
+                plt.imshow(x_net.reshape(ImageChannels, ImageSideFinal, ImageSideFinal)[0])
+                plt.colorbar()
+                plt.title("Label "+str(y_net)+" Error " + str(error_net)+ " Activation = " +str(predict_test(i)[0]))
+                plt.show()
     except Exception, e:
         print str(e)
 
@@ -417,5 +443,6 @@ if __name__ == "__main__":
 
         plt.show()
     except Exception,e:
+        print "Failed"
         pass
 
