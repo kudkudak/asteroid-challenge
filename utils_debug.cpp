@@ -22,11 +22,11 @@
 
 using namespace std;
 using namespace cv;
-void imshow(float*, int);
-void imshow(vector<float> & v){
-    imshow(&v[0], (int)sqrt(v.size())); 
+void imshow(float*, int, string);
+void imshow(vector<float> & v, string title=""){
+    imshow(&v[0], (int)sqrt(v.size()), title); 
 }
-void imshow(float * array, int side){
+void imshow(float * array, int side, string title=""){
     cout<<"Showing image side "<<side<<endl;
     CvSize size;
     size.height = side ;
@@ -36,10 +36,10 @@ void imshow(float * array, int side){
     ipl_image_p->imageDataOrigin = ipl_image_p->imageData;
     Mat image(ipl_image_p);
     cout<<"Showing image\n";    
-    namedWindow( "Display window", WINDOW_NORMAL );// Create a window for display.
+    namedWindow( "ASTEROID"+title, WINDOW_NORMAL );// Create a window for display.
     
     
-    imshow( "Display window", image );                   // Show our image inside it.
+    imshow( "ASTEROID"+title, image );                   // Show our image inside it.
 
     waitKey(0);                                          // Wait for a keystroke in the window
 }

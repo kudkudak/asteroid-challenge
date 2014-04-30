@@ -307,10 +307,21 @@ void log_transform(vector<int> & img, int offset, vector<float>& out){
  * @returns vector<float>
  * @param k - kth image
  */
-vector<float> prepare_data(vector<int> & imageData, vector<string> & detections, int k){
+vector<float> prepare_data(vector<int> & imageData, vector<string> & metadata, int k){
     REPORT("transforming image");
     vector<float> img = pre_augumentation(imageData, k);
-    return transform_image(img);
+    vector<float> augumented_img = transform_image(img);
+    int ExtraColumns = 6;
+    /*
+    augumented_img.resize(augumented_img.size() + ExtraColumns);
+    augumented_img.push_back(to<float>(metadata[9]));
+    augumented_img.push_back(to<float>(metadata[10]));
+    augumented_img.push_back(to<float>(metadata[11]));
+    augumented_img.push_back(to<float>(metadata[12]));
+    augumented_img.push_back(to<float>(metadata[13]));
+    augumented_img.push_back(to<float>(metadata[14]));
+    */
+    return augumented_img;
 }
 
 
@@ -351,6 +362,9 @@ void test(){
  * 
  */
 int testingData(vector<int> imageData, vector<string> detections){
+    
+    vector<vector<string> > metadata;
+
     REPORT("Training");
     int n = imageData.size() /( image_side*image_side);
     int k = n/4;
@@ -363,18 +377,25 @@ int testingData(vector<int> imageData, vector<string> detections){
 
     REPORT(detections.size());
     
-    vector<float> input = prepare_data(imageData, detections, 0);
 
-    
     REPORT("done");
    
     for(int i=0;i<k;++i){
        REPORT(detections[4*i]);
        istringstream iss(detections[4*i]);
+        //TODO: rewrite using move constructor
        vector<string> tokens{istream_iterator<string>{iss},
              istream_iterator<string>{}};
+       metadata.push_back(tokens);
        g_uuids.push_back(to<int>(tokens[0]));
     }
+    //Get neural network input
+    vector<float> input = prepare_data(imageData, metadata[0], 0);
+
+    //Get image from that
+    //vector<float> img(input.begin(), input.begin()+image_side_final*image_side_final);
+    imshow(input);   
+ 
     return 0;
 }
 
