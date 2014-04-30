@@ -1,7 +1,3 @@
-
-
-
-#define DEBUG
 #include <fstream>
 #include <cstdio>
 #include <algorithm>
@@ -17,29 +13,6 @@
 #include <stdio.h>      /* printf */
 #include <stdlib.h>     /* wcstombs, wchar_t(C) */
 #include <iomanip>
-
-
-
-//CONFIG
-//
-
-float im_crop_factor = 2.0f;
-int maximum_pixel_intensity = 255;
-int image_side = 64;
-int image_side_pre_crop = 32;
-int image_side_final = 16;
-
-//
-//CONFIG
-
-
-
-// GLOBAL VARIABLES
-
-int g_n_images = 0;
-vector<int> uuids;
-
-// GLOBAL VARIABLES
 
 
 
@@ -98,15 +71,6 @@ typedef pair<double,double> PD;
         cout<<endl;
 
     }	
-    template <typename T>
-    T to(const std::string & s)
-    {
-        std::istringstream stm(s);
-        T result;
-        stm >> result;
-        return result;
-    }
-
 
 
     template<class T, class K>
@@ -122,6 +86,9 @@ typedef pair<double,double> PD;
     #define NEWLINE ;
     #define ASSERT(x) ;
 
+    void imshow(vector<float> & img){
+    }
+
     template <typename T>
     void write(T begin, T end)
     {
@@ -131,11 +98,7 @@ typedef pair<double,double> PD;
     void write(pair<int,int> * begin, pair<int,int> * end){
         return;
     }	
-    template <typename T>
-    T to(const std::string & s)
-    {
-        return;
-    }
+
     template<class T, class K>
     ostream& operator<<(ostream& out, const pair<T,K> & p){
         return out;
@@ -146,6 +109,41 @@ typedef pair<double,double> PD;
 #endif
 using namespace std;
 
+
+//CONFIG
+//
+
+float im_crop_factor_1 = 2.0f; //before augumentation
+float im_crop_factor_2 = 2.0f; //after augumentation
+int maximum_pixel_intensity = 255;
+int image_side = 64;
+int image_side_pre_aug = 32;
+int image_side_final = 16;
+
+//
+//CONFIG
+
+
+
+// GLOBAL VARIABLES
+
+int g_n_images = 0;
+vector<int> g_uuids;
+
+// GLOBAL VARIABLES
+
+
+
+void log_transform(vector<int> & img, int offset, vector<float>& out);
+
+    template <typename T>
+    T to(const std::string & s)
+    {
+        std::istringstream stm(s);
+        T result;
+        stm >> result;
+        return result;
+    }
 
 
 std::string dec2bin(unsigned n){
@@ -242,10 +240,18 @@ vector<float> im_crop(const vector<float> & img, int side, float factor){
     return img_cropped;
 }
 
-vector<float> transform_image(const vector<float> &img, float im_crop_factor_local = im_crop_factor){
-    vector<float> im_cropped = im_crop(img, get_side(img), im_crop_factor_local);
-    
-    for(float &v: im_cropped) v /= ((float)maximum_pixel_intensity);
+vector<float> pre_augumentation(vector<int> imageData, int k, float im_crop_factor_pre=im_crop_factor_1){
+    vector<float> out(image_side*image_side, 0.0);
+    log_transform(imageData, k*image_side*image_side, out);
+    for(float &v: out) v /= ((float)maximum_pixel_intensity);
+    vector<float> img_cropped = im_crop(out, get_side(out), im_crop_factor_pre);
+    return out;
+}
+
+vector<float> transform_image(const vector<float> &img, float im_crop_factor_post = im_crop_factor_2){
+    //REPORT("augumentation");
+    //REPORT("cropping");
+    vector<float> im_cropped = im_crop(img, get_side(img), im_crop_factor_post);
     return im_cropped;
 }
 
@@ -302,9 +308,9 @@ void log_transform(vector<int> & img, int offset, vector<float>& out){
  * @param k - kth image
  */
 vector<float> prepare_data(vector<int> & imageData, vector<string> & detections, int k){
-    vector<float> out(image_side_pre_crop*image_side_pre_crop, 0.0);
-    log_transform(imageData, k*image_side*image_side, out);
-    return transform_image(out, im_crop_factor);
+    REPORT("transforming image");
+    vector<float> img = pre_augumentation(imageData, k);
+    return transform_image(img);
 }
 
 
@@ -316,19 +322,8 @@ vector<float> prepare_data(vector<int> & imageData, vector<string> & detections,
  * 
  */
 int trainingData(vector<int> imageData, vector<string> detections){
-    int n = imageData.size() / image_side*image_side;
-    int k = n/4;
-   
-    g_n_images += n;
-     
-    COUT("Training data got ");
-    REPORT(n);
-    REPORT(k);
 
-    vector<float> input = prepare_data(imageData, detections, 0);
-    imshow(input);
-
-
+    return 0; 
 }
 
 void test(){
@@ -356,50 +351,90 @@ void test(){
  * 
  */
 int testingData(vector<int> imageData, vector<string> detections){
-    return 1;
+    REPORT("Training");
+    int n = imageData.size() /( image_side*image_side);
+    int k = n/4;
+   
+    g_n_images += n;
+     
+    COUT("Training data got ");
+    REPORT(n);
+    REPORT(k);
+
+    REPORT(detections.size());
+    
+    vector<float> input = prepare_data(imageData, detections, 0);
+
+    
+    REPORT("done");
+   
+    for(int i=0;i<k;++i){
+       REPORT(detections[4*i]);
+       istringstream iss(detections[4*i]);
+       vector<string> tokens{istream_iterator<string>{iss},
+             istream_iterator<string>{}};
+       g_uuids.push_back(to<int>(tokens[0]));
+    }
+    return 0;
 }
 
 
 
 
 vector<int> getAnswer(){
-    return {0};
+    return g_uuids;
 }
 
 int main(){
     
     int N, M,i,j;
-    vector<int> imageData;
-    vector<string> detections;
-    for (i=0; i < 1000; i++)
+    string tmp;
+    for (i=0; i < 1; i++)
     {
-        cin >> N;
+        vector<int> imageData;
+        vector<string> detections;
+        cin>>N;
         imageData.resize(N);
         for (j=0; j < N; j++)
             cin >> imageData[j];
-        cin >> M;
-        for (j=0; j < M; j++)
-            cin >> detections[j];
+        tmp="";
+        cin>>M;    
+        detections.resize(M);
+        getline(cin, tmp);
+        for (j=0; j < M; j++){
+            getline(cin, detections[j]);
+            REPORT(detections[j]);
+        }
+        REPORT(i);
+        REPORT(N);
+        REPORT(M);
         int result = trainingData(imageData, detections);
         cout<<result<<endl;
         cout<<flush;
     }
-    for (i=0; i < 200; i++)
+    for (i=0; i < 1; i++)
     {
-        cin >> N;
+        vector<int> imageData;
+        vector<string> detections;
+        cin>>N;
+        REPORT(N);
         imageData.resize(N);
+        REPORT(N);
         for (j=0; j < N; j++)
             cin >> imageData[j];
-        cin >> M;
+        cin>>M;
+        detections.resize(M);
+        getline(cin, tmp);
         for (j=0; j < M; j++)
-            cin >> detections[j];
+            getline(cin, detections[j]);
         int result = testingData(imageData, detections);
         cout<<result<<endl;
         cout<<flush;
     }
+    REPORT("flushing results");
     vector<int> results = getAnswer();
     cout<<results.size()<<endl;
-    for (i=0;i < g_n_images; i++)
+    for (i=0;i < results.size(); i++)
         cout<<results[i]<<endl;
     cout<<flush;
 }

@@ -15,6 +15,10 @@ public class AsteroidRejectTester
     static String testFile = null;
     static String folder = "";
 
+
+    static boolean to_file = false;
+    static String filename = "";
+
     public void printMessage(String s) {
         if (debug) {
             System.out.println(s);
@@ -129,13 +133,19 @@ public class AsteroidRejectTester
     }
 
     public void doExec() throws Exception {
-
         // launch solution
         printMessage("Executing your solution: " + execCommand + ".");
         Process solution = Runtime.getRuntime().exec(execCommand);
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(solution.getInputStream()));
         PrintWriter writer = new PrintWriter(solution.getOutputStream());
+
+        if(to_file){
+            File file = new File(filename);
+            writer = new PrintWriter(file);
+            printMessage("Writing to file");
+        } 
+
         new ErrorStreamRedirector(solution.getErrorStream()).start();
 
         // read training file
@@ -174,7 +184,7 @@ public class AsteroidRejectTester
                     if ((cnt%4)==0) det_id++;
                 }
                 brdet.close();
-          //      printMessage(folder + s + ".det loaded. Rows = " + detTraining.size());
+                printMessage(folder + s + ".det loaded. Rows = " + detTraining.size());
 
                 if (visualize)
                 {
@@ -191,7 +201,7 @@ public class AsteroidRejectTester
                     }
                 }
 
-                // call trainingData(imageData, detections)
+                printMessage("call trainingData(imageData, detections)");
                 int[] imageData_train = new int[rawTraining.size()];
                 for (int i=0;i<rawTraining.size();i++)
                     imageData_train[i] = rawTraining.get(i);
@@ -211,7 +221,10 @@ public class AsteroidRejectTester
                 writer.flush();
 
                 // get response from solution
-                String trainResp = reader.readLine();
+                if(!to_file){
+                    String trainResp = reader.readLine();
+                    printMessage("Got training response "+trainResp);
+                }
             }
             br.close();
         }
@@ -293,12 +306,15 @@ public class AsteroidRejectTester
                 writer.flush();
 
                 // get response from solution
-                String testResp = reader.readLine();
+                if(!to_file){
+                    String testResp = reader.readLine();
+                }
 
             }
             br.close();
         }
-
+        printMessage("Done testing");
+        if(!to_file){
         // get response from solution
         String cmd = reader.readLine();
         int n = Integer.parseInt(cmd);
@@ -316,6 +332,7 @@ public class AsteroidRejectTester
         // call scoring function
         double score = scoreAnswer(userAns, modelAnsDetect, modelAnsReject);
         printMessage("Score = " + score);
+        }
     }
 
 
@@ -335,7 +352,11 @@ public class AsteroidRejectTester
                 folder = args[++i];
             } else if (args[i].equals("-vis")) {
                 visualize = true;
-            } else {
+            } else if (args[i].equals("-to_file")) {
+                to_file = true;
+                filename = args[++i];                
+            }
+            else {
                 System.out.println("WARNING: unknown argument " + args[i] + ".");
             }
         }
@@ -366,6 +387,7 @@ public class AsteroidRejectTester
                     s = reader.readLine();
                 } catch (Exception e) {
                     // e.printStackTrace();
+                    printMessage("Exception in reading error stream "+e.toString());
                     return;
                 }
                 if (s == null) {
