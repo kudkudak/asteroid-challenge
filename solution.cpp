@@ -114,11 +114,11 @@ using namespace std;
 //
 
 float im_crop_factor_1 = 2.0f; //before augumentation
-float im_crop_factor_2 = 2.0f; //after augumentation
+float im_crop_factor_2 = 4.0f; //after augumentation
 int maximum_pixel_intensity = 255;
 int image_side = 64;
-int image_side_pre_aug = 32;
-int image_side_final = 16;
+int image_side_pre_aug = image_side/(im_crop_factor_1);
+int image_side_final = image_side/(im_crop_factor_1*im_crop_factor_2);
 
 //
 //CONFIG
@@ -224,37 +224,6 @@ unsigned int get_side(const vector<float> & img){
     return (int)sqrt((float)img.size());
 }
 
-
-
-vector<float> im_crop(const vector<float> & img, int side, float factor){
-    int cropped_side = side / factor;
-    int shift = (side - cropped_side) / 2;
-    vector<float> img_cropped(cropped_side*cropped_side, 0);
-
-
-    for(int i=0;i<cropped_side;++i){
-        for(int j=0;j<cropped_side;++j){
-            img_cropped[i*cropped_side + j] = img[(i+shift)*side + (j+shift)]; 
-        }
-    }
-    return img_cropped;
-}
-
-vector<float> pre_augumentation(vector<int> imageData, int k, float im_crop_factor_pre=im_crop_factor_1){
-    vector<float> out(image_side*image_side, 0.0);
-    log_transform(imageData, k*image_side*image_side, out);
-    for(float &v: out) v /= ((float)maximum_pixel_intensity);
-    vector<float> img_cropped = im_crop(out, get_side(out), im_crop_factor_pre);
-    return out;
-}
-
-vector<float> transform_image(const vector<float> &img, float im_crop_factor_post = im_crop_factor_2){
-    //REPORT("augumentation");
-    //REPORT("cropping");
-    vector<float> im_cropped = im_crop(img, get_side(img), im_crop_factor_post);
-    return im_cropped;
-}
-
 /*
  * Log transform and writes out to out
  * @param offset - where does the image data starts
@@ -302,6 +271,37 @@ void log_transform(vector<int> & img, int offset, vector<float>& out){
         out[out_id++]=ival;
     }
 }
+
+vector<float> im_crop(const vector<float> & img, int side, float factor){
+    int cropped_side = side / factor;
+    int shift = (side - cropped_side) / 2;
+    vector<float> img_cropped(cropped_side*cropped_side, 0);
+
+
+    for(int i=0;i<cropped_side;++i){
+        for(int j=0;j<cropped_side;++j){
+            img_cropped[i*cropped_side + j] = img[(i+shift)*side + (j+shift)]; 
+        }
+    }
+    return img_cropped;
+}
+
+vector<float> pre_augumentation(vector<int> imageData, int k, float im_crop_factor_pre=im_crop_factor_1){
+    vector<float> out(image_side*image_side, 0.0);
+    log_transform(imageData, k*image_side*image_side, out);
+    for(float &v: out) v /= ((float)maximum_pixel_intensity);
+    vector<float> img_cropped = im_crop(out, get_side(out), im_crop_factor_pre);
+    return img_cropped;
+}
+
+vector<float> transform_image(const vector<float> &img, float im_crop_factor_post = im_crop_factor_2){
+    //REPORT("augumentation");
+    //REPORT("cropping");
+    vector<float> im_cropped = im_crop(img, get_side(img), im_crop_factor_post);
+    return im_cropped;
+}
+
+
     
 /* Prepare data for i-th image (0-1-2-3 frame 0-1-2-3 frame etc...)
  * @returns vector<float>
@@ -312,7 +312,7 @@ vector<float> prepare_data(vector<int> & imageData, vector<string> & metadata, i
     vector<float> img = pre_augumentation(imageData, k);
     vector<float> augumented_img = transform_image(img);
     int ExtraColumns = 6;
-    /*
+    
     augumented_img.resize(augumented_img.size() + ExtraColumns);
     augumented_img.push_back(to<float>(metadata[9]));
     augumented_img.push_back(to<float>(metadata[10]));
@@ -320,7 +320,7 @@ vector<float> prepare_data(vector<int> & imageData, vector<string> & metadata, i
     augumented_img.push_back(to<float>(metadata[12]));
     augumented_img.push_back(to<float>(metadata[13]));
     augumented_img.push_back(to<float>(metadata[14]));
-    */
+    
     return augumented_img;
 }
 
@@ -392,8 +392,10 @@ int testingData(vector<int> imageData, vector<string> detections){
     //Get neural network input
     vector<float> input = prepare_data(imageData, metadata[0], 0);
 
+    REPORT(input.size());
+
     //Get image from that
-    //vector<float> img(input.begin(), input.begin()+image_side_final*image_side_final);
+    vector<float> img(input.begin(), input.begin()+image_side_final*image_side_final);
     imshow(input);   
  
     return 0;
