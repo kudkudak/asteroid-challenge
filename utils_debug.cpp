@@ -1,7 +1,9 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-
+#include <sstream>
+#include <iomanip>
+#include <iterator>     // std::istream_iterator
 #include <fstream>
 #include <cstdio>
 #include <algorithm>
@@ -22,6 +24,9 @@
 
 using namespace std;
 using namespace cv;
+
+
+
 void imshow(float*, int, string);
 void imshow(vector<float> & v, string title=""){
     imshow(&v[0], (int)sqrt(v.size()), title); 

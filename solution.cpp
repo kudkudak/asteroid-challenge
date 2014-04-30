@@ -37,6 +37,33 @@ typedef pair<double,double> PD;
 #define ND second
 #define INF 10000000; 
 
+#include <sstream>
+#include <iomanip>
+#include <iterator>     // std::istream_iterator
+vector<float> decode_hex1(unsigned char * hex1){
+    vector<float> decoded;
+    //Build floats
+    unsigned char built_float[4];
+    char built_hex[3];
+    float float_memholder;
+    int current = 0;
+    for(int i=0;i<strlen((char*)hex1)/2;++i){
+        //Build hex number
+        built_hex[0] = hex1[2*i];
+        built_hex[1] = hex1[2*i+1];
+        built_hex[2] = '\0';
+        //Add to build_float
+        built_float[current] = (int)strtol(built_hex, NULL, 16);
+        current += 1;
+        if(current == 4){
+            current = 0;
+            memcpy(&float_memholder, reinterpret_cast<float*>(built_float), sizeof(float));  
+            decoded.push_back(float_memholder);
+        }
+    }
+    return decoded; 
+}
+
 
 
 #ifdef DEBUG
@@ -124,11 +151,30 @@ int image_side_final = image_side/(im_crop_factor_1*im_crop_factor_2);
 //CONFIG
 
 
+class NN{
+public:
+    vector<vector<float> > W, b;
+    vector<float> scaling;
+    int input_size;
+    vector<int> layers_sizes;
+    NN(vector<char *> W_encoded, vector<char*> b_encoded, char * scaling_encoded, vector<int> layers_sizes, int input_size): layers_sizes(layers_sizes), input_size(input_size){
+        REPORT("Reading neural network");
+        for(int i=0;i<W_encoded.size();++i){
+            REPORT("Decoding layer "+to<string>(i));
+            W.push_back(decode_hex1(W_encoded[i]));
+            b.push_back(decode_hex1(b_encoded[i]));
+        } 
+        scaling = decode_hex1(scaling_encoded);
+    }
+
+} ;
+
 
 // GLOBAL VARIABLES
 
+NN * g_nn; //Read from binary
 int g_n_images = 0;
-vector<int> g_uuids;
+vector<pair<float, int>> g_uuids;
 
 // GLOBAL VARIABLES
 
@@ -144,80 +190,6 @@ void log_transform(vector<int> & img, int offset, vector<float>& out);
         stm >> result;
         return result;
     }
-
-
-std::string dec2bin(unsigned n){
-    const int size=sizeof(n)*8;
-    std::string res;
-    bool s=0;
-    for (int a=0;a<size;a++){
-        bool bit=n>>(size-1);
-        if (bit)
-            s=1;
-        if (s)
-            res.push_back(bit+'0');
-        n<<=1;
-    }
-    if (!res.size())
-        res.push_back('0');
-    return res;
-}
-
-#include <sstream>
-#include <iomanip>
-#include <iterator>     // std::istream_iterator
-unsigned char * encode_hex1(string filename){
-    vector<unsigned char> *  encoded_ptr = new vector<unsigned char>();
-    vector<unsigned char> & encoded = *encoded_ptr;
-    ifstream myFile (filename, ios::in );
-    vector<float> float_array;
-    copy(istream_iterator<float>(myFile), istream_iterator<float>(), back_inserter(float_array));
-    for(auto v: float_array){
-        unsigned char * v_bytes = reinterpret_cast<unsigned char*>(&v);
-        //Go through each byte
-        for(int i=0;i<4;++i){
-            stringstream ss;
-            //Get hex 
-            ss<<hex<<(int)v_bytes[i];
-            string encoded_hex = ss.str();
-            encoded.push_back(encoded_hex[0]);
-            if(encoded_hex.length()>1)
-                encoded.push_back(encoded_hex[1]);
-            else
-                encoded.push_back('0');
-        }
-    }
-    encoded.push_back('\0');
-    write(encoded.begin(), encoded.end());
-    cout<<encoded[0]<<" "<<encoded[1]<<endl;
-    write(float_array.begin(), float_array.end());
-    myFile.close();
-    return &(encoded[0]);
-}
-
-vector<float> decode_hex1(unsigned char * hex1){
-    vector<float> decoded;
-    //Build floats
-    unsigned char built_float[4];
-    char built_hex[3];
-    float float_memholder;
-    int current = 0;
-    for(int i=0;i<strlen((char*)hex1)/2;++i){
-        //Build hex number
-        built_hex[0] = hex1[2*i];
-        built_hex[1] = hex1[2*i+1];
-        built_hex[2] = '\0';
-        //Add to build_float
-        built_float[current] = (int)strtol(built_hex, NULL, 16);
-        current += 1;
-        if(current == 4){
-            current = 0;
-            memcpy(&float_memholder, reinterpret_cast<float*>(built_float), sizeof(float));  
-            decoded.push_back(float_memholder);
-        }
-    }
-    return decoded; 
-}
 
 #include <cmath>
 unsigned int get_side(const vector<float> & img){
@@ -325,6 +297,10 @@ vector<float> prepare_data(vector<int> & imageData, vector<string> & metadata, i
 }
 
 
+
+
+
+
 /*
  * 4 patches of 64x64 at 4 different observation times
  *
@@ -387,7 +363,7 @@ int testingData(vector<int> imageData, vector<string> detections){
        metadata.push_back(tokens);
     }
     for(int i=0;i<k;++i){
-       g_uuids.push_back(to<int>(metadata[4*i][0]));
+       g_uuids.push_back(pair<float, int>(1.0f, to<int>(metadata[4*i][0])));
     }
     //Get neural network input
     vector<float> input = prepare_data(imageData, metadata[0], 0);
@@ -404,7 +380,8 @@ int testingData(vector<int> imageData, vector<string> detections){
 
 
 
-vector<int> getAnswer(){
+vector<pair<float, int>> getAnswer(){
+    sort(g_uuids.begin(), g_uuids.end());
     return g_uuids;
 }
 
@@ -455,10 +432,10 @@ int main(){
         cout<<flush;
     }
     REPORT("flushing results");
-    vector<int> results = getAnswer();
+    auto results = getAnswer();
     cout<<results.size()<<endl;
     for (i=0;i < results.size(); i++)
-        cout<<results[i]<<endl;
+        cout<<results[i].second<<endl;
     cout<<flush;
 }
 
