@@ -380,14 +380,14 @@ int testingData(vector<int> imageData, vector<string> detections){
 
     REPORT("done");
    
-    for(int i=0;i<k;++i){
-       REPORT(detections[4*i]);
-       istringstream iss(detections[4*i]);
-        //TODO: rewrite using move constructor
+    for(int i=0;i<n;++i){
+       istringstream iss(detections[i]);
        vector<string> tokens{istream_iterator<string>{iss},
              istream_iterator<string>{}};
        metadata.push_back(tokens);
-       g_uuids.push_back(to<int>(tokens[0]));
+    }
+    for(int i=0;i<k;++i){
+       g_uuids.push_back(to<int>(metadata[4*i][0]));
     }
     //Get neural network input
     vector<float> input = prepare_data(imageData, metadata[0], 0);
