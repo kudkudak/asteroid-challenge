@@ -1,3 +1,6 @@
+
+
+
 #define DEBUG
 #include <fstream>
 #include <cstdio>
@@ -14,6 +17,33 @@
 #include <stdio.h>      /* printf */
 #include <stdlib.h>     /* wcstombs, wchar_t(C) */
 #include <iomanip>
+
+
+
+//CONFIG
+//
+
+float im_crop_factor = 2.0f;
+int maximum_pixel_intensity = 255;
+int image_side = 64;
+int image_side_pre_crop = 32;
+int image_side_final = 16;
+
+//
+//CONFIG
+
+
+
+// GLOBAL VARIABLES
+
+int g_n_images = 0;
+vector<int> uuids;
+
+// GLOBAL VARIABLES
+
+
+
+
 
 using namespace std;
 
@@ -117,27 +147,7 @@ typedef pair<double,double> PD;
 using namespace std;
 
 
-/*
- * 4 patches of 64x64 at 4 different observation times
- *
- * @param imageData - 1d array containing info i*64*64 + x + y*64
- * 
- * 
- */
-int trainingData(vector<int> imageData, vector<string> detections){
-    return 1;
-}
 
-/*
- * 4 patches of 64x64 at 4 different observation times
- *
- * @param imageData - 1d array containing info i*64*64 + x + y*64
- * 
- * 
- */
-int testingData(vector<int> imageData, vector<string> detections){
-    return 1;
-}
 std::string dec2bin(unsigned n){
     const int size=sizeof(n)*8;
     std::string res;
@@ -161,7 +171,7 @@ std::string dec2bin(unsigned n){
 unsigned char * encode_hex1(string filename){
     vector<unsigned char> *  encoded_ptr = new vector<unsigned char>();
     vector<unsigned char> & encoded = *encoded_ptr;
-    ifstream myFile ("1.in", ios::in );
+    ifstream myFile (filename, ios::in );
     vector<float> float_array;
     copy(istream_iterator<float>(myFile), istream_iterator<float>(), back_inserter(float_array));
     for(auto v: float_array){
@@ -211,33 +221,186 @@ vector<float> decode_hex1(unsigned char * hex1){
     return decoded; 
 }
 
+#include <cmath>
+unsigned int get_side(const vector<float> & img){
+    return (int)sqrt((float)img.size());
+}
 
 
-vector<float> imcrop(vector<float> img, int side, float factor){
+
+vector<float> im_crop(const vector<float> & img, int side, float factor){
     int cropped_side = side / factor;
-    int shift =(side - cropped_side) / 2
+    int shift = (side - cropped_side) / 2;
     vector<float> img_cropped(cropped_side*cropped_side, 0);
+
+
     for(int i=0;i<cropped_side;++i){
         for(int j=0;j<cropped_side;++j){
             img_cropped[i*cropped_side + j] = img[(i+shift)*side + (j+shift)]; 
         }
     }
-    return img[int(shift_x):int(shift_x+cropped_size_x), int(shift_y):int(shift_y+cropped_size_y)]
+    return img_cropped;
+}
+
+vector<float> transform_image(const vector<float> &img, float im_crop_factor_local = im_crop_factor){
+    vector<float> im_cropped = im_crop(img, get_side(img), im_crop_factor_local);
+    
+    for(float &v: im_cropped) v /= ((float)maximum_pixel_intensity);
+    return im_cropped;
+}
+
+/*
+ * Log transform and writes out to out
+ * @param offset - where does the image data starts
+ */
+void log_transform(vector<int> & img, int offset, vector<float>& out){
+    int W = (64+10)*4-10;
+    int out_id = 0;
+    int off = offset;
+    int imin = 1<<20;
+    int imax = -imin;
+    // Find min and max
+    for (int j=0;j<4096;j++)
+    {
+        int r = img[j+off];
+        if (r>65500) continue;
+        imin = min(imin, r);
+        imax = max(imax, r);
+    }
+    double dmax = (double)(imax) / 256.0;
+    double dmin = (double)(imin) / 256.0;
+    if (dmax*0.5-dmin > 10)
+    {
+        dmax *= 0.5;
+    }
+    if (dmax-dmin<0.0001) dmax += 0.1;
+
+    double linearF = 255.0 / (dmax - dmin);
+    double log10 = log(10.0);
+    double logF = 255.0 / (log(255.0) / log10);
+    for (int y=0;y<64;y++)
+    for (int x=0;x<64;x++)
+    {
+        double ival = (double)img[off++];
+        double dval = (double)(ival) / 256.0;
+        if (dval<dmin) ival = 0;
+        else if (dval>dmax) ival = 255;
+        else
+        {
+            dval = max(0.0, min(dval-dmin, dmax - dmin));
+            double d = ((log(dval * linearF)) / log10) * logF;
+            ival = d;
+        }
+        if (ival<0) ival = 0;
+        if (ival>255) ival = 255;
+        out[out_id++]=ival;
+    }
+}
+    
+/* Prepare data for i-th image (0-1-2-3 frame 0-1-2-3 frame etc...)
+ * @returns vector<float>
+ * @param k - kth image
+ */
+vector<float> prepare_data(vector<int> & imageData, vector<string> & detections, int k){
+    vector<float> out(image_side_pre_crop*image_side_pre_crop, 0.0);
+    log_transform(imageData, k*image_side*image_side, out);
+    return transform_image(out, im_crop_factor);
+}
+
+
+/*
+ * 4 patches of 64x64 at 4 different observation times
+ *
+ * @param imageData - 1d array containing info i*64*64 + x + y*64
+ * 
+ * 
+ */
+int trainingData(vector<int> imageData, vector<string> detections){
+    int n = imageData.size() / image_side*image_side;
+    int k = n/4;
+   
+    g_n_images += n;
+     
+    COUT("Training data got ");
+    REPORT(n);
+    REPORT(k);
+
+    vector<float> input = prepare_data(imageData, detections, 0);
+    imshow(input);
+
 
 }
 
-int main(){
+void test(){
 
-    unsigned char * hex1in = encode_hex1("1.in");
+    unsigned char * hex1in = encode_hex1("2.in");
     vector<float> hex1in_floats = decode_hex1(hex1in);
     write(hex1in_floats.begin(), hex1in_floats.end());
     delete[] hex1in;
 
-    vector<float> test_show;
-    for(int i=0;i<100*100;++i) test_show.push_back(0.6f);
+    vector<float> converted2 = transform_image(hex1in_floats, 1.0);
+    imshow(converted2);
+    //imshow(&im_crop(test_show, get_side(test_show), 2.0)[0], 50);
+    vector<float> converted = transform_image(hex1in_floats);
+    for(float &v: converted) cout<<v<<" ";
+    cout<<endl;
 
-    imshow(&test_show[0], 100);
-
-
-    return 0;
+    imshow(converted);
 }
+
+/*
+ * 4 patches of 64x64 at 4 different observation times
+ *
+ * @param imageData - 1d array containing info i*64*64 + x + y*64
+ * 
+ * 
+ */
+int testingData(vector<int> imageData, vector<string> detections){
+    return 1;
+}
+
+
+
+
+vector<int> getAnswer(){
+    return {0};
+}
+
+int main(){
+    
+    int N, M,i,j;
+    vector<int> imageData;
+    vector<string> detections;
+    for (i=0; i < 1000; i++)
+    {
+        cin >> N;
+        imageData.resize(N);
+        for (j=0; j < N; j++)
+            cin >> imageData[j];
+        cin >> M;
+        for (j=0; j < M; j++)
+            cin >> detections[j];
+        int result = trainingData(imageData, detections);
+        cout<<result<<endl;
+        cout<<flush;
+    }
+    for (i=0; i < 200; i++)
+    {
+        cin >> N;
+        imageData.resize(N);
+        for (j=0; j < N; j++)
+            cin >> imageData[j];
+        cin >> M;
+        for (j=0; j < M; j++)
+            cin >> detections[j];
+        int result = testingData(imageData, detections);
+        cout<<result<<endl;
+        cout<<flush;
+    }
+    vector<int> results = getAnswer();
+    cout<<results.size()<<endl;
+    for (i=0;i < g_n_images; i++)
+        cout<<results[i]<<endl;
+    cout<<flush;
+}
+

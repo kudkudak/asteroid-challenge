@@ -3,7 +3,7 @@ import os
 SplitChannels = True
 
 ##### Constants #####
-DataAugDir = "/data/data_aug_final_16"
+DataAugDir = "data_aug_final_16"
 ImageChannels = int(4)
 
 if SplitChannels:
