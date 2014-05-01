@@ -142,7 +142,8 @@ unsigned char * encode_hex1(string filename){
     vector<unsigned char> & encoded = *encoded_ptr;
     ifstream myFile (filename, ios::in );
     vector<float> float_array;
-    copy(istream_iterator<float>(myFile), istream_iterator<float>(), back_inserter(float_array));
+	//float_array.push_back(0.551420390606);    
+	copy(istream_iterator<float>(myFile), istream_iterator<float>(), back_inserter(float_array));
     for(auto v: float_array){
         unsigned char * v_bytes = reinterpret_cast<unsigned char*>(&v);
         //Go through each byte
@@ -151,16 +152,20 @@ unsigned char * encode_hex1(string filename){
             //Get hex 
             ss<<hex<<(int)v_bytes[i];
             string encoded_hex = ss.str();
-            encoded.push_back(encoded_hex[0]);
-            if(encoded_hex.length()>1)
-                encoded.push_back(encoded_hex[1]);
-            else
+
+            
+            if(encoded_hex.length()>1){
+                encoded.push_back(encoded_hex[0]);
+				encoded.push_back(encoded_hex[1]);
+			}
+            else{
                 encoded.push_back('0');
+				encoded.push_back(encoded_hex[0]);
+			}
         }
     }
     encoded.push_back('\0');
     for(auto x: encoded) cout<<x;
-    cout<<endl;
     myFile.close();
     return &(encoded[0]);
 }
@@ -170,7 +175,6 @@ unsigned char * encode_hex1(string filename){
 int main(int argc, char ** argv){
     unsigned char * hex1in = encode_hex1(argv[1]);
     vector<float> hex1in_floats = decode_hex1(hex1in);
-    write(hex1in_floats.begin(), hex1in_floats.end());
- 
+ 	//write(hex1in_floats.begin(), hex1in_floats.end());
 
 }
