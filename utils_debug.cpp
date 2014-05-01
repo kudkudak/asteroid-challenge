@@ -48,3 +48,25 @@ void imshow(float * array, int side, string title=""){
 
     waitKey(0);                                          // Wait for a keystroke in the window
 }
+
+void imshow64(double*, int, string);
+void imshow64(vector<double> & v, string title=""){
+    imshow64(&v[0], (int)sqrt(v.size()), title); 
+}
+void imshow64(double * array, int side, string title=""){
+    cout<<"Showing image side "<<side<<endl;
+    CvSize size;
+    size.height = side ;
+    size.width = side;
+    IplImage* ipl_image_p = cvCreateImageHeader(size, IPL_DEPTH_64F, 1);
+    ipl_image_p->imageData = reinterpret_cast<char*>(array);
+    ipl_image_p->imageDataOrigin = ipl_image_p->imageData;
+    Mat image(ipl_image_p);
+    cout<<"Showing image\n";    
+    namedWindow( "ASTEROID"+title, WINDOW_NORMAL );// Create a window for display.
+    
+    
+    imshow( "ASTEROID"+title, image );                   // Show our image inside it.
+
+    waitKey(0);                                          // Wait for a keystroke in the window
+}

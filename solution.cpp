@@ -171,7 +171,7 @@ int image_side_pre_aug = image_side/(im_crop_factor_1);
 int image_side_final = image_side/(im_crop_factor_1*im_crop_factor_2);
 
 //configuring neural network
-char * c_nn_data = "0000803f0000004000004040000080400000a0400000c0400000003f0000803e000000400000804000004040000010410000803f00000040";
+char * c_nn_data = "0000803f0000004000004040000080400000a0400000c0400000003f0000803e000000400000804000004040000010410000803f000000400000000000000000000000000000803f0000803f0000803f";
 vector<int> c_layer_sizes = {3, 2,2};
 
 //CONFIG
@@ -180,7 +180,7 @@ vector<int> c_layer_sizes = {3, 2,2};
 class NN{
 public:
     vector<vector<float> > Ws, bs;
-    vector<float> scaling;
+    vector<float> mean, std;
     vector<int> layers_sizes;
     string activation;
     /*
@@ -205,11 +205,16 @@ public:
             write(Ws.back().begin(), Ws.back().end());
             write(bs.back().begin(), bs.back().end());
         } 
-        
+        mean.resize(layers_sizes[0]); 
+        std.resize(layers_sizes[0]); 
+        memcpy(&mean[0], &decoded_nn[0]+shift, layers_sizes[0]*sizeof(float));
+        shift += layers_sizes[0];
+        memcpy(&std[0], &decoded_nn[0]+shift, layers_sizes[0]*sizeof(float));
+        shift += layers_sizes[0];
         //scaling = decode_hex1(scaling_encoded);
     }
 
-    double feedforward(vector<float> input){
+    double feedforward(vector<double> input){
         if(input.size() != layers_sizes[0]) throw "Wrong dimensionality for NN";
 
         //Prepare input
@@ -217,6 +222,10 @@ public:
         vector<double> previous_input;
         previous_input.reserve(input.size());
         for(auto v: input) previous_input.push_back((double)v);
+        
+        //Scale
+        for(int i=0;i<current_input.size();++i)
+            current_input[i] = (current_input[i] - (double)mean[i])/(double)std[i];
 
         for(int i=0;i<layers_sizes.size()-1;++i){
             current_input.resize(layers_sizes[i+1]);
@@ -247,16 +256,16 @@ public:
 // GLOBAL VARIABLES
 
 int g_n_images = 0;
-vector<pair<float, int>> g_uuids;
+vector<pair<double, int>> g_uuids;
 
 // GLOBAL VARIABLES
 
 
 
-void log_transform(vector<int> & img, int offset, vector<float>& out);
+void log_transform(vector<int> & img, int offset, vector<double>& out);
 
 #include <cmath>
-unsigned int get_side(const vector<float> & img){
+unsigned int get_side(const vector<double> & img){
     return (int)sqrt((float)img.size());
 }
 
@@ -264,7 +273,7 @@ unsigned int get_side(const vector<float> & img){
  * Log transform and writes out to out
  * @param offset - where does the image data starts
  */
-void log_transform(vector<int> & img, int offset, vector<float>& out){
+void log_transform(vector<int> & img, int offset, vector<double>& out){
     int W = (64+10)*4-10;
     int out_id = 0;
     int off = offset;
@@ -308,10 +317,10 @@ void log_transform(vector<int> & img, int offset, vector<float>& out){
     }
 }
 
-vector<float> im_crop(const vector<float> & img, int side, float factor){
+vector<double> im_crop(const vector<double> & img, int side, float factor){
     int cropped_side = side / factor;
     int shift = (side - cropped_side) / 2;
-    vector<float> img_cropped(cropped_side*cropped_side, 0);
+    vector<double> img_cropped(cropped_side*cropped_side, 0);
 
 
     for(int i=0;i<cropped_side;++i){
@@ -322,18 +331,18 @@ vector<float> im_crop(const vector<float> & img, int side, float factor){
     return img_cropped;
 }
 
-vector<float> pre_augumentation(vector<int> imageData, int k, float im_crop_factor_pre=im_crop_factor_1){
-    vector<float> out(image_side*image_side, 0.0);
+vector<double> pre_augumentation(vector<int> imageData, int k, float im_crop_factor_pre=im_crop_factor_1){
+    vector<double> out(image_side*image_side, 0.0);
     log_transform(imageData, k*image_side*image_side, out);
-    for(float &v: out) v /= ((float)maximum_pixel_intensity);
-    vector<float> img_cropped = im_crop(out, get_side(out), im_crop_factor_pre);
+    for(auto &v: out) v /= ((float)maximum_pixel_intensity);
+    vector<double> img_cropped = im_crop(out, get_side(out), im_crop_factor_pre);
     return img_cropped;
 }
 
-vector<float> transform_image(const vector<float> &img, float im_crop_factor_post = im_crop_factor_2){
+vector<double> transform_image(const vector<double> &img, float im_crop_factor_post = im_crop_factor_2){
     //REPORT("augumentation");
     //REPORT("cropping");
-    vector<float> im_cropped = im_crop(img, get_side(img), im_crop_factor_post);
+    vector<double> im_cropped = im_crop(img, get_side(img), im_crop_factor_post);
     return im_cropped;
 }
 
@@ -343,19 +352,19 @@ vector<float> transform_image(const vector<float> &img, float im_crop_factor_pos
  * @returns vector<float>
  * @param k - kth image
  */
-vector<float> prepare_data(vector<int> & imageData, vector<string> & metadata, int k){
+vector<double> prepare_data(vector<int> & imageData, vector<string> & metadata, int k){
     REPORT("transforming image");
-    vector<float> img = pre_augumentation(imageData, k);
-    vector<float> augumented_img = transform_image(img);
+    vector<double> img = pre_augumentation(imageData, k);
+    vector<double> augumented_img = transform_image(img);
     int ExtraColumns = 6;
     
     augumented_img.resize(augumented_img.size() + ExtraColumns);
-    augumented_img.push_back(to<float>(metadata[9]));
-    augumented_img.push_back(to<float>(metadata[10]));
-    augumented_img.push_back(to<float>(metadata[11]));
-    augumented_img.push_back(to<float>(metadata[12]));
-    augumented_img.push_back(to<float>(metadata[13]));
-    augumented_img.push_back(to<float>(metadata[14]));
+    augumented_img.push_back(to<double>(metadata[9]));
+    augumented_img.push_back(to<double>(metadata[10]));
+    augumented_img.push_back(to<double>(metadata[11]));
+    augumented_img.push_back(to<double>(metadata[12]));
+    augumented_img.push_back(to<double>(metadata[13]));
+    augumented_img.push_back(to<double>(metadata[14]));
     
     return augumented_img;
 }
@@ -427,16 +436,16 @@ int testingData(vector<int> imageData, vector<string> detections){
        metadata.push_back(tokens);
     }
     for(int i=0;i<k;++i){
-       g_uuids.push_back(pair<float, int>(1.0f, to<int>(metadata[4*i][0])));
+       g_uuids.push_back(pair<double, int>(1.0f, to<int>(metadata[4*i][0])));
     }
     //Get neural network input
-    vector<float> input = prepare_data(imageData, metadata[0], 0);
+    vector<double> input = prepare_data(imageData, metadata[0], 0);
 
     REPORT(input.size());
 
     //Get image from that
-    vector<float> img(input.begin(), input.begin()+image_side_final*image_side_final);
-    imshow(input);   
+    vector<double> img(input.begin(), input.begin()+image_side_final*image_side_final);
+    imshow64(input);   
  
     return 0;
 }
@@ -444,7 +453,7 @@ int testingData(vector<int> imageData, vector<string> detections){
 
 
 
-vector<pair<float, int>> getAnswer(){
+vector<pair<double, int>> getAnswer(){
     sort(g_uuids.begin(), g_uuids.end());
     return g_uuids;
 }
