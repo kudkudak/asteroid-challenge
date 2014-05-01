@@ -175,6 +175,19 @@ unsigned char * encode_hex1(string filename){
 int main(int argc, char ** argv){
     unsigned char * hex1in = encode_hex1(argv[1]);
     vector<float> hex1in_floats = decode_hex1(hex1in);
+    ifstream myFile (argv[1], ios::in );
+    vector<float> float_array;
+	//float_array.push_back(0.551420390606);    
+	copy(istream_iterator<float>(myFile), istream_iterator<float>(), back_inserter(float_array));
+
+	for(int i=0;i<float_array.size();++i){
+		if(float_array[i] != hex1in_floats[i])
+		{
+			cout<<float_array[i]<<" "<<hex1in_floats[i]<<endl;
+			throw "Error";
+		}				
+	}
+
  	//write(hex1in_floats.begin(), hex1in_floats.end());
 
 }

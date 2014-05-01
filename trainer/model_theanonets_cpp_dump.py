@@ -50,13 +50,13 @@ print len(weights[0][2].reshape(-1))
 print len(biases[0].reshape(-1))
 print len(biases[1].reshape(-1))
 print len(biases[2].reshape(-1))
-dumped = np.hstack( tuple( [np.hstack((w.reshape(-1),b.reshape(-1))) for w,b in zip(weights[0], biases) ] + [normalizer.mean_, normalizer.std_ ] ) )
+dumped = np.hstack( tuple( [np.hstack((w.T.reshape(-1),b.reshape(-1))) for w,b in zip(weights[0], biases) ] + [normalizer.mean_, normalizer.std_ ] ) )
 print dumped
 
 open(MODEL_NAME+".cppdump", "w").write(" ".join((str(x) for x in dumped)))
 
-print len(dumped)
 
+print e.network.predict(aug.reshape(1,-1))
 
 exit(0)
 
