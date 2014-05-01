@@ -110,11 +110,11 @@ def get_example(id):
 from sklearn.preprocessing import normalize
 
 def get_training_example_memory(id, add_x_extra=True, gen=default_generator):
-    ex, ex_extra, y =get_example_memory(id)
+    ex, y, ex_extra=get_example_memory(id)
     if add_x_extra:
-        return np.hstack((gen(ex.reshape(ImageChannels, aug_image_side, aug_image_side)).reshape(-1), ex_extra))
+        return np.hstack((gen(ex.reshape(ImageChannels, aug_image_side, aug_image_side)).reshape(-1), ex_extra)), y
     else:
-        return gen(ex.reshape(ImageChannels, aug_image_side, aug_image_side)).reshape(-1)
+        return gen(ex.reshape(ImageChannels, aug_image_side, aug_image_side)).reshape(-1), y
 
 def get_example_memory(id):
     """
@@ -237,7 +237,7 @@ def get_training_test_matrices_expanded(train_percentage=0.9, N = 100,
     """
     size_training = int(N*train_percentage)
     size_testing = N - size_training
-    trn_iterator, tst_iterator = get_cycled_training_test_generators_bare(oversample_negative=oversample_negative, train_percentage=train_percentage,
+    trn_iterator, tst_iterator, train_ids = get_cycled_training_test_generators_bare(oversample_negative=oversample_negative, train_percentage=train_percentage,
                                                         add_x_extra=add_x_extra,
                                                         generator=generator,
                                                         feature_gen=feature_gen, train_ids=train_ids)
@@ -265,7 +265,7 @@ def get_training_test_matrices_expanded(train_percentage=0.9, N = 100,
         Y_test[id] = label
         if id>=size_testing-1: break
 
-    return X_train, Y_train, X_test, Y_test
+    return X_train, Y_train, X_test, Y_test, train_ids
 
 
 def generate_train_ids(limit_size=100000000000, train_percentage=0.9):
@@ -356,7 +356,7 @@ def get_cycled_training_test_generators_bare(train_percentage=0.9, oversample_ne
                 yield np.hstack((default_generator(datum[0].reshape(ImageChannels, aug_image_side, aug_image_side)).
                      reshape(-1), added_features)), datum[1]
 
-    return train_generator(), test_generator()
+    return train_generator(), test_generator(), train_ids
 
 
 
