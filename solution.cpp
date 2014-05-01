@@ -241,6 +241,10 @@ public:
             
             if(activation=="linear"){
             }
+            else if(activation=="tanh"){
+                for(int k=0;k<layers_sizes[i+1];++k)
+                    current_input[k] += tanh(current_input[k]);
+            }
             else{
                 throw "Not know activation";
             }

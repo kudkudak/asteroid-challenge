@@ -109,6 +109,13 @@ def get_example(id):
 
 from sklearn.preprocessing import normalize
 
+def get_training_example_memory(id, add_x_extra=True):
+    ex, ex_extra, y =get_example_memory(id)
+    if add_x_extra:
+        return np.hstack((ex, ex_extra))
+    else:
+        return ex
+
 def get_example_memory(id):
     """
     Fetches single example which are preloaded into RAM memory, that simple :) High level API
