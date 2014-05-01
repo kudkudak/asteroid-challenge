@@ -34,6 +34,8 @@ except Exception, e:
     print "Failed with ",e
 
 
+print "CROP_FACTOR=",CROP_FACTOR
+
 # Augument this much
 default_augmentation_params = {
     'zoom_range': (0.95, 1.05),

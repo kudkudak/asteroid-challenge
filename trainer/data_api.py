@@ -109,12 +109,12 @@ def get_example(id):
 
 from sklearn.preprocessing import normalize
 
-def get_training_example_memory(id, add_x_extra=True):
+def get_training_example_memory(id, add_x_extra=True, gen=default_generator):
     ex, ex_extra, y =get_example_memory(id)
     if add_x_extra:
-        return np.hstack((ex, ex_extra))
+        return np.hstack((gen(ex.reshape(ImageChannels, aug_image_side, aug_image_side)).reshape(-1), ex_extra))
     else:
-        return ex
+        return gen(ex.reshape(ImageChannels, aug_image_side, aug_image_side)).reshape(-1)
 
 def get_example_memory(id):
     """
