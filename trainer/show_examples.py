@@ -12,6 +12,8 @@ showDiff = False
 showRaw = False
 average=False
 generator = generator_fast
+UsePCAKmeans = True
+PCAKmeansModel = "model_kmeans_pca_1.pkl" 
 ###### CONFIG #########3
 
 if showRaw:
@@ -61,6 +63,21 @@ else:
     test_set_x_extra = test_set_x[:, test_set_x.shape[1]-ExtraColumns:]
     test_set_x = test_set_x[:, 0:test_set_x.shape[1]-ExtraColumns]
 
+
+    train_set_x_pca, test_set_x_pca = None, None
+    pca, kmeans = None, None
+    F = None
+    if UsePCAKmeans: 
+        ipixels = ImageChannels*ImageSideFinal*ImageSideFinal
+        print "Loading PCA"
+        pca, kmeans = cPickle.load(open(PCAKmeansModel, "r"))
+        #TODO: add extra columns
+        print "Transforming train"
+        train_set_x_pca = kmeans.transform(pca.transform(train_set_x[:,0:ipixels]))
+        print "Transforming test"
+        test_set_x_pca = kmeans.transform(pca.transform(test_set_x[:,0:ipixels]))
+        # Add pca variables
+        F = pca.inverse_transform(kmeans.cluster_centers_)
 
     import matplotlib.pylab as plt
     for id, (ex, label) in enumerate(zip(train_set_x, train_set_y)):

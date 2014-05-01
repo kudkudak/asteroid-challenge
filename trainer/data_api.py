@@ -224,7 +224,7 @@ def get_training_test_matrices_bare(train_percentage=0.9, oversample_negative=Fa
 @timed
 @cached_HDD()
 def get_training_test_matrices_expanded(train_percentage=0.9, N = 100,
-                                       add_x_extra=True, generator= default_generator,oversample_negative=False,  feature_gen=None):
+                                       add_x_extra=True, generator= default_generator,oversample_negative=False,  feature_gen=None, train_ids=None):
     """
     Gets expanded dataset
     """
@@ -233,7 +233,7 @@ def get_training_test_matrices_expanded(train_percentage=0.9, N = 100,
     trn_iterator, tst_iterator = get_cycled_training_test_generators_bare(oversample_negative=oversample_negative, train_percentage=train_percentage,
                                                         add_x_extra=add_x_extra,
                                                         generator=generator,
-                                                        feature_gen=feature_gen)
+                                                        feature_gen=feature_gen, train_ids=train_ids)
 
 
     # Fetch dynamically dimensions
@@ -261,17 +261,7 @@ def get_training_test_matrices_expanded(train_percentage=0.9, N = 100,
     return X_train, Y_train, X_test, Y_test
 
 
-
-def get_cycled_training_test_generators_bare(train_percentage=0.9, oversample_negative=False, limit_size = 10000000000,
-                                       add_x_extra=True, generator = default_generator, feature_gen=None):
-    """ Oversampling is useful if class are imbalanced """
-
-    assert aug_fold_out is not None
-
-    # Load into memory
-    get_example_memory(0)
-
-
+def generate_train_ids(limit_size=100000000000, train_percentage=0.9):
     # Test and train ids without oversampling
     dataset_size = min(limit_size, rawdataset_size*aug_fold_out)
     dataset_chunk_number = min(chunks_count, dataset_size//aug_single_chunk_size + 1)
@@ -283,7 +273,25 @@ def get_cycled_training_test_generators_bare(train_percentage=0.9, oversample_ne
     for id in train_chunk_ids:
         if id*aug_single_chunk_size >= dataset_size-1: break
         train_ids += range(id*aug_single_chunk_size, min(dataset_size, (id+1)*aug_single_chunk_size))
+    return train_ids
 
+
+def get_cycled_training_test_generators_bare(train_percentage=0.9, oversample_negative=False, limit_size = 10000000000,
+                                       add_x_extra=True, generator = default_generator, feature_gen=None, train_ids=None):
+    """ Oversampling is useful if class are imbalanced """
+
+    assert aug_fold_out is not None
+
+    # Load into memory
+    get_example_memory(0)
+
+
+    dataset_size = min(limit_size, rawdataset_size*aug_fold_out)
+    dataset_chunk_number = min(chunks_count, dataset_size//aug_single_chunk_size + 1)
+
+
+    if train_ids is None:
+        train_ids = generate_train_ids(limit_size, train_percentage)
 
     if oversample_negative:
         train_ids_negative = np.array([id for id in train_ids if any(Y_in_memory[id]==0)])

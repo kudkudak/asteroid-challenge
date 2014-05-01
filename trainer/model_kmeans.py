@@ -1,5 +1,5 @@
-MODEL_NAME="model_kmeans_pca_1_channel.pkl"
-N=300000
+MODEL_NAME="model_kmeans_pca_1_50_8x8.pkl"
+N=400000
 Visualise=True
 from sklearn import svm
 import cPickle
@@ -28,8 +28,8 @@ print train_set_x.shape
 
 
 
-pca = PCA(n_components=40, whiten=True)
-kmeans = KMeans(n_clusters=49, n_init=1)
+pca = PCA(n_components=50, whiten=True)
+kmeans = KMeans(n_clusters=50, n_init=1)
 if not os.path.exists(MODEL_NAME):
 
     print "Training on ", train_set_x.shape
