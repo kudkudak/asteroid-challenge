@@ -40,6 +40,29 @@ typedef pair<double,double> PD;
 #include <sstream>
 #include <iomanip>
 #include <iterator>     // std::istream_iterator
+    template <typename T>
+    T to(const std::string & s)
+    {
+        std::istringstream stm(s);
+        T result;
+        stm >> result;
+        return result;
+    }
+
+
+
+
+
+
+    template <typename T>
+    string tostr(const T & val)
+    {
+        std::stringstream stm;
+        stm << val;
+        return stm.str();
+    }
+
+
 vector<float> decode_hex1(unsigned char * hex1){
     vector<float> decoded;
     //Build floats
@@ -138,7 +161,7 @@ using namespace std;
 
 
 //CONFIG
-//
+
 
 float im_crop_factor_1 = 2.0f; //before augumentation
 float im_crop_factor_2 = 4.0f; //after augumentation
@@ -147,32 +170,82 @@ int image_side = 64;
 int image_side_pre_aug = image_side/(im_crop_factor_1);
 int image_side_final = image_side/(im_crop_factor_1*im_crop_factor_2);
 
-//
+//configuring neural network
+char * c_nn_data = "0000803f0000004000004040000080400000a0400000c0400000003f0000803e000000400000804000004040000010410000803f00000040";
+vector<int> c_layer_sizes = {3, 2,2};
+
 //CONFIG
 
 
 class NN{
 public:
-    vector<vector<float> > W, b;
+    vector<vector<float> > Ws, bs;
     vector<float> scaling;
-    int input_size;
     vector<int> layers_sizes;
-    NN(vector<char *> W_encoded, vector<char*> b_encoded, char * scaling_encoded, vector<int> layers_sizes, int input_size): layers_sizes(layers_sizes), input_size(input_size){
+    string activation;
+    /*
+    * @param hex1_nn_data Encoded in Hex1 data for NN
+    */ 
+    NN(char* hex1_nn_data,  vector<int> layers_sizes, string activation="linear" ): layers_sizes(layers_sizes), activation(activation) {
         REPORT("Reading neural network");
-        for(int i=0;i<W_encoded.size();++i){
-            REPORT("Decoding layer "+to<string>(i));
-            W.push_back(decode_hex1(W_encoded[i]));
-            b.push_back(decode_hex1(b_encoded[i]));
+        int shift = 0;
+        vector<float> decoded_nn = decode_hex1(reinterpret_cast<unsigned char*>(hex1_nn_data));
+        REPORT("Read "+tostr(decoded_nn.size()));
+        //efficient
+        for(int i=0;i<layers_sizes.size()-1;++i){
+            vector<float> W, b;
+            W.resize(layers_sizes[i]*layers_sizes[i+1]);
+            b.resize(layers_sizes[i+1]);
+            memcpy(&W[0], &decoded_nn[0]+shift, layers_sizes[i]*layers_sizes[i+1]*sizeof(float));
+            shift += layers_sizes[i]*layers_sizes[i+1];
+            memcpy(&b[0], &decoded_nn[0]+shift, layers_sizes[i+1]*sizeof(float));
+            shift += layers_sizes[i+1];
+            Ws.push_back(std::move(W));
+            bs.push_back(std::move(b));
+            write(Ws.back().begin(), Ws.back().end());
+            write(bs.back().begin(), bs.back().end());
         } 
-        scaling = decode_hex1(scaling_encoded);
+        
+        //scaling = decode_hex1(scaling_encoded);
     }
 
-} ;
+    double feedforward(vector<float> input){
+        if(input.size() != layers_sizes[0]) throw "Wrong dimensionality for NN";
+
+        //Prepare input
+        vector<double> current_input;
+        vector<double> previous_input;
+        previous_input.reserve(input.size());
+        for(auto v: input) previous_input.push_back((double)v);
+
+        for(int i=0;i<layers_sizes.size()-1;++i){
+            current_input.resize(layers_sizes[i+1]);
+            for(auto & v: current_input) v = 0.0;
+            
+            for(int k=0;k<layers_sizes[i+1];++k){
+                for(int l=0;l<layers_sizes[i];++l){
+                    current_input[k] += (double)Ws[i][k*layers_sizes[i]+l]*previous_input[l];
+                }
+            }
+            for(int k=0;k<layers_sizes[i+1];++k)
+                current_input[k] += (double)bs[i][k];
+            
+            if(activation=="linear"){
+            }
+            else{
+                throw "Not know activation";
+            }
+                
+            write(current_input.begin(), current_input.end());
+            previous_input = std::move(current_input);
+        }
+    }
+
+} g_nn(c_nn_data, c_layer_sizes) ;
 
 
 // GLOBAL VARIABLES
 
-NN * g_nn; //Read from binary
 int g_n_images = 0;
 vector<pair<float, int>> g_uuids;
 
@@ -181,15 +254,6 @@ vector<pair<float, int>> g_uuids;
 
 
 void log_transform(vector<int> & img, int offset, vector<float>& out);
-
-    template <typename T>
-    T to(const std::string & s)
-    {
-        std::istringstream stm(s);
-        T result;
-        stm >> result;
-        return result;
-    }
 
 #include <cmath>
 unsigned int get_side(const vector<float> & img){
@@ -312,7 +376,7 @@ int trainingData(vector<int> imageData, vector<string> detections){
 
     return 0; 
 }
-
+/*
 void test(){
 
     unsigned char * hex1in = encode_hex1("2.in");
@@ -328,7 +392,7 @@ void test(){
     cout<<endl;
 
     imshow(converted);
-}
+}*/
 
 /*
  * 4 patches of 64x64 at 4 different observation times
@@ -386,7 +450,8 @@ vector<pair<float, int>> getAnswer(){
 }
 
 int main(){
-    
+
+   
     int N, M,i,j;
     string tmp;
     for (i=0; i < 1; i++)

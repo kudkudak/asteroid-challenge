@@ -95,20 +95,24 @@ public class AsteroidConverter
                 printMessage("Considering next file");
 
                 String filename = child.getAbsolutePath();
+                printMessage("here");
+                printMessage(filename);
                 String basename = filename.substring(0, filename.lastIndexOf('.')),
                         extension = filename.substring(filename.lastIndexOf('.') + 1);
                 printMessage("Reading "+filename +" basename "+extension) ;
 
                 // Skip not interesting files
                 if(!extension.equals("raw")) continue;
+                printMessage("here");
                 // load raw image data
                 ArrayList<Integer> rawTraining = new ArrayList<Integer>();
                 loadRawImage(child.getAbsolutePath(), rawTraining);
+                printMessage("here");
                 // load detection data
                 List<String> detTraining = new ArrayList<String>();
                 BufferedReader brdet =
                         new BufferedReader(new FileReader(basename + ".det"));
-
+                printMessage("here");
                 int cnt = 0;
                 Set<Integer> trainAns = new TreeSet<Integer>();
                 while (true) {
@@ -121,6 +125,7 @@ public class AsteroidConverter
                     {
                         trainAns.add(det_id);
                     }
+                    row += " " + filename;
                     detTraining.add(row);
                     cnt++;
                     if ((cnt%4)==0) det_id++;
