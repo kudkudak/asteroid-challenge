@@ -313,25 +313,27 @@ public class AsteroidRejectTester
             }
             br.close();
         }
-        printMessage("Done testing");
-        if(!to_file){
-        // get response from solution
-        String cmd = reader.readLine();
-        int n = Integer.parseInt(cmd);
-        if (n!=modelAnsReject.size()+modelAnsDetect.size())
-        {
-            printMessage("Invalid number of detections in return. " + (modelAnsReject.size()+modelAnsDetect.size()) + " expected, but " + n + " in list.");
-            printMessage("Score = 0");
-        }
-        int[] userAns = new int[n];
-        for (int i=0;i<n;i++) {
-            String val = reader.readLine();
-            userAns[i] = Integer.parseInt(val);
-        }
 
-        // call scoring function
-        double score = scoreAnswer(userAns, modelAnsDetect, modelAnsReject);
-        printMessage("Score = " + score);
+        if(!to_file){
+		    // get response from solution
+		    String cmd = reader.readLine();
+			printMessage(cmd);
+		    int n = Integer.parseInt(cmd);
+		    if (n!=modelAnsReject.size()+modelAnsDetect.size())
+		    {
+		        printMessage("Invalid number of detections in return. " + (modelAnsReject.size()+modelAnsDetect.size()) + " expected, but " + n + " in list.");
+		        printMessage("Score = 0");
+		    }
+		    int[] userAns = new int[n];
+		    for (int i=0;i<n;i++) {
+		        String val = reader.readLine();
+				printMessage(val);
+		        userAns[i] = Integer.parseInt(val);
+		    }
+
+		    // call scoring function
+		    double score = scoreAnswer(userAns, modelAnsDetect, modelAnsReject);
+		    printMessage("Score = " + score);
         }
     }
 

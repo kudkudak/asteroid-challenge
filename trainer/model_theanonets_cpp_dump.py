@@ -50,9 +50,8 @@ print len(weights[0][2].reshape(-1))
 print len(biases[0].reshape(-1))
 print len(biases[1].reshape(-1))
 print len(biases[2].reshape(-1))
-"""
-for w in weights[0]:
-    print "Weight shape ", w.shape
+dumped = np.hstack( tuple( [np.hstack((w.T.reshape(-1),b.reshape(-1))) for w,b in zip(weights[0], biases) ] + [normalizer.mean_, normalizer.std_ ] ) )
+print dumped
 
 dumped = np.hstack( tuple( [np.hstack((w.T.reshape(-1),b.reshape(-1))) for w,b in zip(weights[0], biases) ] + [normalizer.mean_, normalizer.std_ ] ) )
 print dumped
@@ -63,18 +62,10 @@ print weights[0][0].T[0, 0:70]
 print dumped[(70*128+128): (70*128+128+128)]
 print weights[0][1].T[0, 0:128]
 print weights[0][0].T.shape
-"""
+
 open(MODEL_NAME+".cppdump", "w").write(" ".join((str(x) for x in dumped)))
 
-
-print len(dumped)
-
-tst_str="-1.49913 -1.24362 -1.41037 -1.11879 -1.41562 -1.32508 -1.3208 -1.17095 -1.1737 -1.03177 -1.31408 -1.01932 -1.41493 -1.43986 -1.4158 -1.24406 -1.74538 -1.31434 -1.37679 -1.22956 -1.36085 -1.33887 -1.64762 -1.24824 -1.33022 -1.41554 -1.22997 -1.255 -1.37009 -1.32633 -1.37353 -1.18314 -1.05987 -1.60996 -1.36104 -0.911397 -0.844543 -1.20042 -1.55688 -1.18325 -1.3751 -1.40414 -1.30923 -1.07137 -0.82004 -1.08152 -1.02208 -1.17163 -1.08533 -1.38033 -1.60088 -0.882443 -0.974504 -1.02202 -1.24592 -1.16724 -1.28597 -1.68702 -1.46696 -1.57608 -1.22446 -1.40168 -1.39717 -1.16398 93.0807 77.8635 81.4317 116.435 1.55162 101.044"
-input_test = np.array([float(a) for a in tst_str.split(" ")])
-print input_test
- 
-print e.network.feed_forward(input_test.reshape(1,-1))[-1]
-z = e.network.feed_forward(input_test.reshape(1,-1))
+print e.network.predict(aug.reshape(1,-1))
 
 exit(0)
 
