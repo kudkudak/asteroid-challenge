@@ -26,7 +26,7 @@ e = theanets.Experiment(
 
 
 #!/usr/bin/env python
-MODEL_NAME = "theanonets_feedforward.pkl"
+MODEL_NAME = "mt_160_140_tanh.pkl"
 DEBUG = 1
 import cPickle
 import matplotlib.pyplot as plt
@@ -101,17 +101,17 @@ print "Normalizing pixels"
 
 e = theanets.Experiment(
     theanets.Regressor,
-    activation='relu',
-    num_updates=25,
+    activation='tanh',
+    num_updates=40,
     weight_l2=1e-5,
     hidden_l2=1e-5,
-    layers=(train_set_x.shape[1],  128, 64, 32, 10, last_layer),
+    layers=(train_set_x.shape[1],  160, 40, last_layer),
 )
 #e.add_trainer("hf")
 e.run((train_set_x, train_set_y.astype("float32").reshape(-1,last_layer)), (test_set_x, test_set_y.astype("float32").reshape(-1,last_layer)))
-e.network.save("mt_128_64_32_10_8x8_noPCA_litreg_0.9_800_relu.pkl")
+e.network.save(MODEL_NAME)
 import cPickle
-cPickle.dump(normalizer, open("mt_128_64_32_10_8x8_noPCA_litreg_0.9_relu.pkl.normalizer", "w"))
+cPickle.dump(normalizer, open(MODEL_NAME+".normalizer", "w"))
 
 def _tp_tn_fp_fn(y_true, y_pred):
     tp, tn, fp, fn = 0., 0., 0., 0.

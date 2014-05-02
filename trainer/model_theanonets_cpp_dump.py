@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-MODEL_NAME = "mt_128_64_32_relu_8x8_noPCA.pkl"
+MODEL_NAME = "mt_128_64_32_8x8_noPCA_noreg_0.9_800.pkl"
 DEBUG = 1
 import cPickle
 import matplotlib.pyplot as plt
@@ -32,7 +32,7 @@ e = theanets.Experiment(
     layers=(get_training_example_memory(0)[0].shape[0],  128, 64, 32, 1),
 )
 e.network.load(MODEL_NAME);
-normalizer = cPickle.load(open("500000.normalizer"))
+normalizer = cPickle.load(open("mt_128_64_32_8x8_noPCA_noreg_0.9.pkl.normalizer"))#open(MODEL_NAME+".normalizer"))
            
 weights = [p.get_value().copy() for p in e.network.weights],
 
@@ -65,29 +65,16 @@ print weights[0][1].T[0, 0:128]
 print weights[0][0].T.shape
 """
 open(MODEL_NAME+".cppdump", "w").write(" ".join((str(x) for x in dumped)))
-"""
+
+
 print len(dumped)
 
-input_test = np.array([float(a) for a in "0.214742 0.214742 0.237616 0.214742 0.202117 0.226541 0.173861 0.226541 0.214742 0.188541 0.173861 0.226541 0.226541 0.226541 0.188541 0.188541 0.237616 0.157881 0.24805 0.140346 0.202117 0.202117 0.188541 0.188541 0.226541 0.202117 0.202117 0.202117 0.157881 0.157881 0.202117 0.173861 0.202117 0.226541 0.173861 0.173861 0.214742 0.214742 0.202117 0.173861 0.140346 0.140346 0.140346 0.202117 0.214742 0.157881 0.0743938 0.0743938 0.173861 0.0991536 0.202117 0.140346 0.0743938 0.157881 0.157881 0.157881 0.188541 0.157881 0.157881 0.0743938 0.120923 0.120923 0.140346 0.173861 18.47 6.48 1.893 0.5 1.54 0.66".split(" ")])
-normalizer.transform(input_test, copy=False)
-
-input_test = np.array([float(a) for a in "-0.975401 -0.979134 -0.885057 -0.987605 -1.04186 -0.932716 -1.15475 -0.924912 -0.979083 -1.10037 -1.18352 -0.972717 -0.972777 -0.956463 -1.10042 -1.09173 -0.884972 -1.2525 -0.917176 -1.44037 -1.17095 -1.11662 -1.12044 -1.09586 -0.937094 -1.07828 -1.17123 -1.30554 -1.50207 -1.36384 -1.07829 -1.16352 -1.04172 -0.972722 -1.29419 -1.43112 -1.24921 -1.11624 -1.07842 -1.16351 -1.3024 -1.3279 -1.38468 -1.17136 -1.11625 -1.30903 -1.61214 -1.58587 -1.15469 -1.48403 -1.06167 -1.34467 -1.62928 -1.25247 -1.23211 -1.22338 -1.08801 -1.22326 -1.22738 -1.59047 -1.39067 -1.38614 -1.29882 -1.15105 94.0955 104.432 91.8572 0.810043 6.28942 44.0421".split(" ")])
+tst_str="-1.49913 -1.24362 -1.41037 -1.11879 -1.41562 -1.32508 -1.3208 -1.17095 -1.1737 -1.03177 -1.31408 -1.01932 -1.41493 -1.43986 -1.4158 -1.24406 -1.74538 -1.31434 -1.37679 -1.22956 -1.36085 -1.33887 -1.64762 -1.24824 -1.33022 -1.41554 -1.22997 -1.255 -1.37009 -1.32633 -1.37353 -1.18314 -1.05987 -1.60996 -1.36104 -0.911397 -0.844543 -1.20042 -1.55688 -1.18325 -1.3751 -1.40414 -1.30923 -1.07137 -0.82004 -1.08152 -1.02208 -1.17163 -1.08533 -1.38033 -1.60088 -0.882443 -0.974504 -1.02202 -1.24592 -1.16724 -1.28597 -1.68702 -1.46696 -1.57608 -1.22446 -1.40168 -1.39717 -1.16398 93.0807 77.8635 81.4317 116.435 1.55162 101.044"
+input_test = np.array([float(a) for a in tst_str.split(" ")])
 print input_test
  
-print e.network.feed_forward(input_test.reshape(1,-1))
-
-z1, z2, z3 = e.network.feed_forward(input_test.reshape(1,-1))
-
-
-print weights[0][2]
-print biases[2]
-import math
-print math.tanh(np.dot(z2, weights[0][2])+biases[2])
-print "Without tanh"
-print np.dot(z2, weights[0][2])+biases[2]
-print z3
-exit(0)
-"""
+print e.network.feed_forward(input_test.reshape(1,-1))[-1]
+z = e.network.feed_forward(input_test.reshape(1,-1))
 
 exit(0)
 
@@ -142,6 +129,3 @@ print "tp", "tn", "fp", "fn"
 
 print "Accuracy ", (tp+tn)/(tp+tn+fp+fn), "Negative precision ", tn/(tn+fn+0.0001), "Precision ", tp/(tp+fp+0.00001)
 print "True performance ", tn/(fp+tn)
-
-               
-
