@@ -26,7 +26,7 @@ e = theanets.Experiment(
 
 
 #!/usr/bin/env python
-MODEL_NAME = "mt_160_140_tanh.pkl"
+MODEL_NAME = "mt_300_100_10_tanh.pkl"
 DEBUG = 1
 import cPickle
 import matplotlib.pyplot as plt
@@ -57,12 +57,12 @@ if DEBUG >= 1:
 onlyLast = True
 UsePCAKmeans = False
 PCAKmeansModel = "model_kmeans_pca_1_50_8x8.pkl"#"model_kmeans_pca_1.pkl"
-N = 8000000
+N = 6000000
 
 print N
 
 train_set_x, train_set_y, test_set_x, test_set_y, train_indices= \
-    get_training_test_matrices_expanded(N=N, train_percentage=0.9, oversample_negative=True, generator=generator_fast, add_x_extra=True)
+    get_training_test_matrices_expanded(N=N, train_percentage=0.99, oversample_negative=True, generator=generator_fast, add_x_extra=True)
 
 print PCAKmeansModel
 
@@ -102,10 +102,12 @@ print "Normalizing pixels"
 e = theanets.Experiment(
     theanets.Regressor,
     activation='tanh',
-    num_updates=40,
-    weight_l2=1e-5,
-    hidden_l2=1e-5,
-    layers=(train_set_x.shape[1],  160, 40, last_layer),
+    num_updates=20,
+    decode_linear=False,
+    batchsize=100,
+    weight_l2=1e-4,
+    hidden_l2=1e-4,
+    layers=(train_set_x.shape[1],  300, 100, 10,  last_layer),
 )
 #e.add_trainer("hf")
 e.run((train_set_x, train_set_y.astype("float32").reshape(-1,last_layer)), (test_set_x, test_set_y.astype("float32").reshape(-1,last_layer)))

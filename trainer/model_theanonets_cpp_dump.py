@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-MODEL_NAME = "mt_128_64_32_8x8_noPCA_noreg_0.9_800.pkl"
+MODEL_NAME="mt_128_128_8x8_noPCA_reg_0.99_tanhout.pkl"
 DEBUG = 1
 import cPickle
 import matplotlib.pyplot as plt
@@ -29,14 +29,20 @@ e = theanets.Experiment(
     theanets.Regressor,
     activation='tanh',
     num_updates=100,
-    layers=(get_training_example_memory(0)[0].shape[0],  128, 64, 32, 1),
+    layers=(get_training_example_memory(0)[0].shape[0],  128, 128, 1),
 )
 e.network.load(MODEL_NAME);
-normalizer = cPickle.load(open("mt_128_64_32_8x8_noPCA_noreg_0.9.pkl.normalizer"))#open(MODEL_NAME+".normalizer"))
+normalizer = cPickle.load(open(MODEL_NAME+".normalizer"))
            
 weights = [p.get_value().copy() for p in e.network.weights],
 
 biases =[p.get_value().copy() for p in e.network.biases]
+
+dumped = np.hstack( tuple( [np.hstack((w.T.reshape(-1),b.reshape(-1))) for w,b in zip(weights[0], biases) ] + [normalizer.mean_, normalizer.std_ ] ) )
+print dumped
+
+
+
 """
 print "Weights"
 
@@ -50,9 +56,6 @@ print len(weights[0][2].reshape(-1))
 print len(biases[0].reshape(-1))
 print len(biases[1].reshape(-1))
 print len(biases[2].reshape(-1))
-dumped = np.hstack( tuple( [np.hstack((w.T.reshape(-1),b.reshape(-1))) for w,b in zip(weights[0], biases) ] + [normalizer.mean_, normalizer.std_ ] ) )
-print dumped
-
 dumped = np.hstack( tuple( [np.hstack((w.T.reshape(-1),b.reshape(-1))) for w,b in zip(weights[0], biases) ] + [normalizer.mean_, normalizer.std_ ] ) )
 print dumped
 """
