@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-MODEL_NAME="mt_128_128_8x8_noPCA_reg_0.99_tanhout.pkl"
+MODEL_NAME="mt_300_150_20_tanh_09_noreg.pkl"
 DEBUG = 1
 import cPickle
 import matplotlib.pyplot as plt
@@ -27,9 +27,9 @@ from theanonet_utils import load_mnist, plot_layers
 
 e = theanets.Experiment(
     theanets.Regressor,
-    activation='tanh',
+    activation='relu',
     num_updates=100,
-    layers=(get_training_example_memory(0)[0].shape[0],  128, 128, 1),
+    layers=(get_training_example_memory(0)[0].shape[0],  300, 150, 20, 1),
 )
 e.network.load(MODEL_NAME);
 normalizer = cPickle.load(open(MODEL_NAME+".normalizer"))

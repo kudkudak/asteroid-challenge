@@ -85,9 +85,9 @@ import sklearn
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import linear_model
 MODEL_NAME="rf.pkl"
-N=180000
+N=8000000
 
-UsePCAKmeans = True
+UsePCAKmeans = False
 PCAKmeansModel = "model_kmeans_pca_8x8_1_channel.pkl" 
 PCAKmeansModel = "model_kmeans_pca_1.pkl" 
 
@@ -98,7 +98,7 @@ classification = False
 clf = sklearn.linear_model.SGDClassifier(loss='log')
 clf = RandomForestClassifier(n_estimators=28, max_depth=None, max_features=60,  min_samples_split=1, random_state=0, n_jobs=7, verbose=5)
 clf = sklearn.ensemble.GradientBoostingClassifier(verbose=5)
-clf = sklearn.linear_model.SGDRegressor(verbose=5)
+clf = sklearn.linear_model.SGDRegressor(verbose=5, alpha=0.1)
 
 print "====================="
 print "Training scikit model with partialFit=",partialFit," onlyLast=", onlyLast, " classification=", classification
@@ -116,8 +116,8 @@ from sklearn.decomposition import RandomizedPCA
 print get_example_memory(0)
 
 print "SVM Test.."
-train_set_x, train_set_y, test_set_x, test_set_y = \
-    get_training_test_matrices_expanded(N=N, oversample_negative=True, generator=generator_fast, add_x_extra=True)
+train_set_x, train_set_y, test_set_x, test_set_y, train_indicies = \
+    get_training_test_matrices_expanded(N=N, oversample_negative=True, generator=generator_fast, add_x_extra=True, train_percentage=0.9)
 
 # Fit only to the last
 if onlyLast:
@@ -213,7 +213,6 @@ else:
                 if yt==0:
                     score_0 += abs(clf.predict(xt) - yt)               
                     n_0 += 1.
-                    print (yt,clf.predict(xt))
                 else:
                     score_1 += abs(clf.predict(xt) - yt)               
                     n_1 += 1.
@@ -225,10 +224,9 @@ else:
 
                 n += 1
                 score += abs(clf.predict(xt) - yt)               
-            raw_input() 
             print "Score ", score/(n+0.)
-            print "Score ", score_0/(n_0+0.)
-            print "Score ", score_1/(n_1+0.)
+            print "Score0 ", score_0/(n_0+0.)
+            print "Score1 ", score_1/(n_1+0.)
 
             tp, tn, fp, fn = _tp_tn_fp_fn(Y_st, Y_pred)
             print tp, tn, fp, fn
@@ -237,7 +235,6 @@ else:
             print "Accuracy ", (tp+tn)/(tp+tn+fp+fn), "Negative precision ", tn/(tn+fn+0.0001), "Precision ", tp/(tp+fp+0.00001)
             print "True performance ", tn/(fp+tn)
     
-            raw_input()
     else:
         clf.fit(X_tr, Y_tr)
         score = 0
