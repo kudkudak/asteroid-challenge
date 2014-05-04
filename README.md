@@ -1,6 +1,9 @@
 NASA Asteroid Challenge solution
 ======================
 
+AstroidChallenge consisted in predicting if asteroid detection is correct.
+Technically submission had to be a self-contained 1-MB C++/Java files.
+
 This repository contains code submitted to Asteroid Challenge held by topcoder.
 It scored 31 place from 69 competitors, and 469 registrants. The final
 solution consisted in small ensemble of neural network trained using theano trained
@@ -12,9 +15,13 @@ Among other things I have tested:
 
 * Convolutional neural networks 
 
-* PCA and KMeans for feature detectors
+* PCA and KMeans for feature detectors (very sensible features, but wasn't very
+  helpful, didn't manage to investigate why)
 
 * Autoencoder
+
+* Random Forests (strong model, but unfortunately hard to port from python to
+  C++)
 
 * 3 and 4 layers feedforward networks with dropout/relu units
 
