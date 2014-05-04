@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-MODEL_NAME = "mt_128_64_8x8_noPCA_small.pkl"
+MODEL_NAME="mt_300_150_20_tanh_09_noreg.pkl"
 DEBUG = 1
 import cPickle
 import matplotlib.pyplot as plt
@@ -27,9 +27,9 @@ from theanonet_utils import load_mnist, plot_layers
 
 e = theanets.Experiment(
     theanets.Regressor,
-    activation='tanh',
+    activation='relu',
     num_updates=100,
-    layers=(get_training_example_memory(0)[0].shape[0],  128, 64, 1),
+    layers=(get_training_example_memory(0)[0].shape[0],  300, 150, 20, 1),
 )
 e.network.load(MODEL_NAME);
 normalizer = cPickle.load(open(MODEL_NAME+".normalizer"))
@@ -38,6 +38,12 @@ weights = [p.get_value().copy() for p in e.network.weights],
 
 biases =[p.get_value().copy() for p in e.network.biases]
 
+dumped = np.hstack( tuple( [np.hstack((w.T.reshape(-1),b.reshape(-1))) for w,b in zip(weights[0], biases) ] + [normalizer.mean_, normalizer.std_ ] ) )
+print dumped
+
+
+
+"""
 print "Weights"
 
 print weights[0][0].shape
@@ -52,14 +58,19 @@ print len(biases[1].reshape(-1))
 print len(biases[2].reshape(-1))
 dumped = np.hstack( tuple( [np.hstack((w.T.reshape(-1),b.reshape(-1))) for w,b in zip(weights[0], biases) ] + [normalizer.mean_, normalizer.std_ ] ) )
 print dumped
+"""
+print "Checking dumped values"
+print dumped[0:70]
+print weights[0][0].T[0, 0:70]
+print dumped[(70*128+128): (70*128+128+128)]
+print weights[0][1].T[0, 0:128]
+print weights[0][0].T.shape
 
 open(MODEL_NAME+".cppdump", "w").write(" ".join((str(x) for x in dumped)))
-
 
 print e.network.predict(aug.reshape(1,-1))
 
 exit(0)
-
 
 def _tp_tn_fp_fn(y_true, y_pred):
     tp, tn, fp, fn = 0., 0., 0., 0.
@@ -112,6 +123,3 @@ print "tp", "tn", "fp", "fn"
 
 print "Accuracy ", (tp+tn)/(tp+tn+fp+fn), "Negative precision ", tn/(tn+fn+0.0001), "Precision ", tp/(tp+fp+0.00001)
 print "True performance ", tn/(fp+tn)
-
-               
-

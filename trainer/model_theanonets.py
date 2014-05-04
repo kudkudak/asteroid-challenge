@@ -3,7 +3,7 @@
  Any results true true true
 e = theanets.Experiment(
     theanets.Regressor,
-    layers=(train_set_x.shape[1], 128, 14,  last_layer),
+    layers=(train_set_x.shape[1], 128, 14,  last_layer),:
 )
 
 
@@ -26,7 +26,7 @@ e = theanets.Experiment(
 
 
 #!/usr/bin/env python
-MODEL_NAME = "theanonets_feedforward.pkl"
+MODEL_NAME = "mt_100_500_10_099_reg_tanh.pkl"
 DEBUG = 1
 import cPickle
 import matplotlib.pyplot as plt
@@ -57,11 +57,11 @@ if DEBUG >= 1:
 onlyLast = True
 UsePCAKmeans = False
 PCAKmeansModel = "model_kmeans_pca_1_50_8x8.pkl"#"model_kmeans_pca_1.pkl"
-N = 6000000
+N = 8000000
 
 print N
 
-train_set_x, train_set_y, test_set_x, test_set_y = \
+train_set_x, train_set_y, test_set_x, test_set_y, train_indices= \
     get_training_test_matrices_expanded(N=N, train_percentage=0.9, oversample_negative=True, generator=generator_fast, add_x_extra=True)
 
 print PCAKmeansModel
@@ -102,18 +102,18 @@ print "Normalizing pixels"
 e = theanets.Experiment(
     theanets.Regressor,
     activation='tanh',
-    weight_l2 = 0.0004,
-    hidden_l2 = 0.0004,
-    input_dropout = 0.2,
-    hidden_dropout = 0.2,
-    num_updates=10,
-    layers=(train_set_x.shape[1],  128, 128, last_layer),
+    num_updates=20,
+    #decode_linear=False,
+    batchsize=100,
+    weight_l2=1e-3,
+    hidden_l2=1e-3,
+    layers=(train_set_x.shape[1],  100, 500, 15,  last_layer),
 )
 #e.add_trainer("hf")
 e.run((train_set_x, train_set_y.astype("float32").reshape(-1,last_layer)), (test_set_x, test_set_y.astype("float32").reshape(-1,last_layer)))
-e.network.save("mt_128_128_8x8_noPCA_reg_tp0.99.pkl")
+e.network.save(MODEL_NAME)
 import cPickle
-cPickle.dump(normalizer, open("mt_128_128_8x8_noPCA_reg_dropout0.9.pkl.normalizer", "w"))
+cPickle.dump(normalizer, open(MODEL_NAME+".normalizer", "w"))
 
 def _tp_tn_fp_fn(y_true, y_pred):
     tp, tn, fp, fn = 0., 0., 0., 0.
