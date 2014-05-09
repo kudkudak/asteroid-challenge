@@ -5,7 +5,7 @@ AstroidChallenge consisted in predicting if asteroid detection is correct.
 Technically submission had to be a self-contained 1-MB C++/Java files.
 
 This repository contains code submitted to Asteroid Challenge held by topcoder.
-It scored 31 place from 69 competitors, and 469 registrants. The final
+It scored **29** place from 69 competitors, and 469 registrants. The final
 solution consisted in small ensemble of neural network trained using theano trained
 on augumented set of asteroids (around 6 000 000). The neural network were
 encoded as binary in C++ code.
