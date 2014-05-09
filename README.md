@@ -10,6 +10,8 @@ solution consisted in small ensemble of neural network trained using theano trai
 on augumented set of asteroids (around 6 000 000). The neural network were
 encoded as binary in C++ code.
 
+**Disclaimer**: This repository contains not cleaned and documented code :) 
+
 I have tested many things and it turned out to be a great learning experience.
 Among other things I have tested:
 
